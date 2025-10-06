@@ -4,8 +4,6 @@
 
 	let { children, data }: { children: any; data: { user: { id: number; name: string } | null } } =
 		$props();
-
-	$inspect(data);
 </script>
 
 <svelte:head>
@@ -16,10 +14,6 @@
 	<nav>
 		<a href="/insights">Insights</a>
 		<a href="/settings">Settings</a>
-	</nav>
-{:else}
-	<nav>
-		<a href="/setup">Setup</a>
 	</nav>
 {/if}
 

@@ -35,13 +35,10 @@
 	const tasksNoDate = (data.tasks ?? []).filter((t) => t.scheduledAt == null);
 </script>
 
-{#if !data.user}
-	<section class="flex flex-col gap-y-10">
-		<div>
-			<h2>Welcome to i-c-u</h2>
-			<p>Collaborative task manager for balancing time and treats.</p>
-		</div>
+<div class="fixed top-3 right-3">
+	<div class="flex flex-col gap-y-2">
 		<form
+			class="flex flex-col gap-y-2"
 			onsubmit={async (e) => {
 				e.preventDefault();
 				loginMsg = loginErr = null;
@@ -67,7 +64,14 @@
 		</form>
 		{#if loginMsg}<p>{loginMsg}</p>{/if}
 		{#if loginErr}<p>{loginErr}</p>{/if}
-		<p>Or go to <a href="/setup">/setup</a> to create your first group.</p>
+	</div>
+	<div class="">Or <a href="/setup">setup</a> a new group</div>
+</div>
+
+{#if !data.user}
+	<section class="flex h-screen w-screen flex-col items-center justify-center gap-y-5">
+		<h2>i-c-u</h2>
+		<p>Collaborative task manager, focused on appreciation and balance</p>
 	</section>
 {:else}
 	<section>

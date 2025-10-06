@@ -1,5 +1,3 @@
-<h2>Admin</h2>
-
 <form method="POST" action="?/create">
 	<h3>Create Group and First User</h3>
 	<input name="title" placeholder="Group title" required />
