@@ -1,12 +1,7 @@
 <script lang="ts">
-	type TaskLite = {
-		id: number;
-		title: string;
-		emoji: string | null;
-		scheduledAt: number | null;
-		assignedUserId: number | null;
-	};
-	let { task }: { task: TaskLite } = $props();
+	import type { Task } from '$lib/types';
+
+	let { task }: { task: Task } = $props();
 </script>
 
 <div>

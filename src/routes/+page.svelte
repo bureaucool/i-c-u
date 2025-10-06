@@ -1,17 +1,10 @@
 <script lang="ts">
-	type TaskLite = {
-		id: number;
-		title: string;
-		emoji: string | null;
-		scheduledAt: number | null;
-		assignedUserId: number | null;
-	};
-	type UserLite = { id: number; name: string };
+	import type { Task, User } from '$lib/types';
 
 	let {
 		data
 	}: {
-		data: { user?: { id: number; name: string } | null; tasks?: TaskLite[]; users?: UserLite[] };
+		data: { user?: { id: number; name: string } | null; tasks?: Task[]; users?: User[] };
 	} = $props();
 	let showAdd = $state(false);
 	let formType: 'task' | 'treat' = $state('task');
@@ -184,7 +177,7 @@
 				<input name="recurrenceInterval" type="number" min="1" placeholder="X" />
 				<select name="assignedUserId">
 					<option value="">Unassigned</option>
-					{#each data.users as u}
+					{#each data.users ?? ([] as User[]) as u}
 						<option value={u.id}>{u.name}</option>
 					{/each}
 				</select>
@@ -215,7 +208,7 @@
 				<input name="title" placeholder="Title" required />
 				<!-- fromUser is current user -->
 				<select name="toUserId" required>
-					{#each data.users as u}
+					{#each data.users ?? ([] as User[]) as u}
 						<option value={u.id}>{u.name}</option>
 					{/each}
 				</select>

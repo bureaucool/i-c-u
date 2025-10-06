@@ -1,23 +1,14 @@
 <script lang="ts">
-	type TaskLite = { id: number; assignedUserId: number | null; durationMinutes: number | null };
-	type TreatLite = {
-		id: number;
-		fromUserId: number;
-		toUserId: number;
-		accepted: boolean;
-		valueMinutes: number;
-	};
-	type UserLite = { id: number; name: string };
-	let { data }: { data: { tasksDone: TaskLite[]; treatsAll: TreatLite[]; users: UserLite[] } } =
-		$props();
+	import type { Task, Treat, User } from '$lib/types';
+	let { data }: { data: { tasksDone: Task[]; treatsAll: Treat[]; users: User[] } } = $props();
 
 	const userById = new Map(data.users.map((u) => [u.id, u] as const));
 	const minutesByUser = new Map<number, number>();
 	for (const t of data.tasksDone) {
-		if (t.assignedUserId == null || t.durationMinutes == null) continue;
+		if (t.assignedUserId == null || (t as any).durationMinutes == null) continue;
 		minutesByUser.set(
 			t.assignedUserId,
-			(minutesByUser.get(t.assignedUserId) ?? 0) + t.durationMinutes
+			(minutesByUser.get(t.assignedUserId) ?? 0) + Number((t as any).durationMinutes)
 		);
 	}
 	const treatsValueByUser = new Map<number, number>();
