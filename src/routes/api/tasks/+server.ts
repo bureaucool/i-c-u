@@ -5,9 +5,9 @@ import { task, group, user, groupMember } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getEmojiForTitle } from '$lib/server/emoji';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
 	const groupIdParam = url.searchParams.get('groupId');
-	const groupId = groupIdParam ? Number(groupIdParam) : undefined;
+	const groupId = groupIdParam ? Number(groupIdParam) : (locals.groupId ?? undefined);
 
 	if (groupId !== undefined && !Number.isFinite(groupId)) throw error(400, 'invalid groupId');
 
@@ -16,10 +16,11 @@ export const GET: RequestHandler = async ({ url }) => {
 	return json(rows);
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const body = await request.json().catch(() => ({}) as Record<string, unknown>);
 	const title = typeof body.title === 'string' ? body.title.trim() : '';
-	const groupId = Number(body.groupId);
+	const groupId =
+		body.groupId == null ? (locals.groupId as number | undefined) : Number(body.groupId);
 	const assignedUserId = body.assignedUserId == null ? null : Number(body.assignedUserId);
 	const scheduledAt = body.scheduledAt == null ? null : Number(body.scheduledAt);
 	const recurrenceType = typeof body.recurrenceType === 'string' ? body.recurrenceType : null;

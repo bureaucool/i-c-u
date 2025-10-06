@@ -5,9 +5,9 @@ import { treat, group, user, groupMember } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getEmojiForTitle } from '$lib/server/emoji';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
 	const groupIdParam = url.searchParams.get('groupId');
-	const groupId = groupIdParam ? Number(groupIdParam) : undefined;
+	const groupId = groupIdParam ? Number(groupIdParam) : (locals.groupId ?? undefined);
 	if (groupId !== undefined && !Number.isFinite(groupId)) throw error(400, 'invalid groupId');
 
 	const query = db.select().from(treat);
@@ -15,11 +15,12 @@ export const GET: RequestHandler = async ({ url }) => {
 	return json(rows);
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const body = await request.json().catch(() => ({}) as Record<string, unknown>);
 	const title = typeof body.title === 'string' ? body.title.trim() : '';
-	const groupId = Number(body.groupId);
-	const fromUserId = Number(body.fromUserId);
+	const groupId =
+		body.groupId == null ? (locals.groupId as number | undefined) : Number(body.groupId);
+	const fromUserId = locals.user?.id as number | undefined;
 	const toUserId = Number(body.toUserId);
 	const valueMinutes = Number(body.valueMinutes);
 
@@ -33,7 +34,11 @@ export const POST: RequestHandler = async ({ request }) => {
 	const [g] = await db.select().from(group).where(eq(group.id, groupId)).limit(1);
 	if (!g) throw error(404, 'group not found');
 
-	const [fu] = await db.select().from(user).where(eq(user.id, fromUserId)).limit(1);
+	const [fu] = await db
+		.select()
+		.from(user)
+		.where(eq(user.id, fromUserId as number))
+		.limit(1);
 	if (!fu) throw error(404, 'from user not found');
 	const [tu] = await db.select().from(user).where(eq(user.id, toUserId)).limit(1);
 	if (!tu) throw error(404, 'to user not found');

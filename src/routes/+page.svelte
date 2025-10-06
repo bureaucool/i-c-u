@@ -130,10 +130,25 @@
 					addMsg = addErr = null;
 					const form = new FormData(e.currentTarget as HTMLFormElement);
 					const body = Object.fromEntries(form.entries());
+					// compute scheduledAt from optional date/time
+					const date = (body.date as string | undefined) ?? '';
+					const time = (body.time as string | undefined) ?? '';
+					let scheduledAt: number | null = null;
+					if (date) {
+						const iso = time ? `${date}T${time}:00` : `${date}T00:00:00`;
+						scheduledAt = new Date(iso).getTime();
+					}
+					const payload = {
+						title: body.title,
+						assignedUserId: body.assignedUserId || null,
+						scheduledAt,
+						recurrenceType: body.recurrenceType || null,
+						recurrenceInterval: body.recurrenceInterval ? Number(body.recurrenceInterval) : null
+					};
 					const res = await fetch('/api/tasks', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(body)
+						body: JSON.stringify(payload)
 					});
 					if (res.ok) {
 						addMsg = 'Task created';
@@ -146,7 +161,20 @@
 				}}
 			>
 				<input name="title" placeholder="Title" required />
-				<input name="groupId" type="number" placeholder="Group ID" required />
+				<!-- optional date/time -->
+				<input name="date" type="date" />
+				<input name="time" type="time" />
+				<!-- recurrence -->
+				<select name="recurrenceType">
+					<option value="">One-time</option>
+					<option value="daily">Daily</option>
+					<option value="weekly">Weekly</option>
+					<option value="monthly">Monthly</option>
+					<option value="every_x_days">Every X days</option>
+					<option value="every_x_weeks">Every X weeks</option>
+					<option value="every_x_months">Every X months</option>
+				</select>
+				<input name="recurrenceInterval" type="number" min="1" placeholder="X" />
 				<select name="assignedUserId">
 					<option value="">Unassigned</option>
 					{#each data.users as u}
@@ -178,12 +206,7 @@
 				}}
 			>
 				<input name="title" placeholder="Title" required />
-				<input name="groupId" type="number" placeholder="Group ID" required />
-				<select name="fromUserId" required>
-					{#each data.users as u}
-						<option value={u.id}>{u.name}</option>
-					{/each}
-				</select>
+				<!-- fromUser is current user -->
 				<select name="toUserId" required>
 					{#each data.users as u}
 						<option value={u.id}>{u.name}</option>

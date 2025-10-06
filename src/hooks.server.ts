@@ -6,6 +6,7 @@ import { eq, and, gt } from 'drizzle-orm';
 export const handle: Handle = async ({ event, resolve }) => {
 	const sid = event.cookies.get('sid');
 	let currentUser: { id: number; name: string; email: string } | null = null;
+	let currentGroupId: number | null = null;
 	if (sid) {
 		const [s] = await db.select().from(session).where(eq(session.id, sid)).limit(1);
 		if (s && s.expiresAt > Date.now()) {
@@ -14,7 +15,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
+	// choose group from cookie if set
+	const gid = event.cookies.get('gid');
+	if (gid && /^\d+$/.test(gid)) currentGroupId = Number(gid);
+
 	event.locals.user = currentUser;
+	event.locals.groupId = currentGroupId;
 
 	// Enforce auth on API routes except auth endpoint
 	if (event.url.pathname.startsWith('/api') && !event.url.pathname.startsWith('/api/auth')) {

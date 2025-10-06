@@ -1,12 +1,17 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 
 	type GroupLite = { id: number; title: string };
 	type UserLite = { id: number; name: string };
 	let {
 		data
 	}: {
-		data: { user?: { id: number; name: string } | null; groups?: GroupLite[]; users?: UserLite[] };
+		data: {
+			user?: { id: number; name: string } | null;
+			groupId?: number | null;
+			groups?: GroupLite[];
+			users?: UserLite[];
+		};
 	} = $props();
 	let groupMsg = $state<string | null>(null);
 	let groupErr = $state<string | null>(null);
@@ -21,7 +26,8 @@
 <button
 	onclick={async () => {
 		await fetch('/api/auth', { method: 'DELETE' });
-		goto('/');
+		await invalidateAll();
+		await goto('/');
 	}}>Logout</button
 >
 
@@ -86,4 +92,29 @@
 	</form>
 	{#if pwdMsg}<p>{pwdMsg}</p>{/if}
 	{#if pwdErr}<p>{pwdErr}</p>{/if}
+</section>
+
+<section>
+	<h3>Active Group</h3>
+	<form
+		onsubmit={async (e) => {
+			e.preventDefault();
+			groupMsg = groupErr = null;
+			const form = new FormData(e.currentTarget as HTMLFormElement);
+			const res = await fetch('?/selectGroup', { method: 'POST', body: form });
+			if (res.ok) groupMsg = 'Active group updated';
+			else groupErr = 'Failed to set active group';
+		}}
+	>
+		<select name="groupId">
+			{#each data.groups as g}
+				<option value={g.id} selected={data.groupId != null && g.id === data.groupId}
+					>{g.title} (#{g.id})</option
+				>
+			{/each}
+		</select>
+		<button type="submit">Use this group</button>
+	</form>
+	{#if groupMsg}<p>{groupMsg}</p>{/if}
+	{#if groupErr}<p>{groupErr}</p>{/if}
 </section>

@@ -2,18 +2,25 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
-	let { children } = $props();
+	let { children, data }: { children: any; data: { user: { id: number; name: string } | null } } =
+		$props();
+
+	$inspect(data);
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<nav>
-	<a href="/">Home</a>
-	<a href="/insights">Insights</a>
-	<a href="/settings">Settings</a>
-	<a href="/setup">Setup</a>
-</nav>
+{#if data.user}
+	<nav>
+		<a href="/insights">Insights</a>
+		<a href="/settings">Settings</a>
+	</nav>
+{:else}
+	<nav>
+		<a href="/setup">Setup</a>
+	</nav>
+{/if}
 
 {@render children?.()}
