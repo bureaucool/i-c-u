@@ -177,5 +177,5 @@ Endpoints:
 
 Routes:
 
-- `/admin` — Create a new `group` and the first `user` (name, email, password). After creation, a membership is added and the user is logged in.
+- `/setup` — Create a new `group` and the first `user` (name, email, password). After creation, a membership is added and the user is logged in.
 - `/settings` — Update group title and adjust the current user's availability. Also supports changing the logged-in user's password.

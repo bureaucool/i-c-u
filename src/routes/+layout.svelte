@@ -13,7 +13,7 @@
 	<a href="/">Home</a>
 	<a href="/insights">Insights</a>
 	<a href="/settings">Settings</a>
-	<a href="/admin">Admin</a>
+	<a href="/setup">Setup</a>
 </nav>
 
 {@render children?.()}

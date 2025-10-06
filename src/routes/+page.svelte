@@ -32,9 +32,11 @@
 </script>
 
 {#if !data.user}
-	<section>
-		<h2>Welcome to i-c-u</h2>
-		<p>Collaborative task manager for balancing time and treats.</p>
+	<section class="flex flex-col gap-y-10">
+		<div>
+			<h2>Welcome to i-c-u</h2>
+			<p>Collaborative task manager for balancing time and treats.</p>
+		</div>
 		<form
 			onsubmit={async (e) => {
 				e.preventDefault();
@@ -45,14 +47,14 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(body)
 				});
-				location.reload();
+				// location.reload();
 			}}
 		>
 			<input name="email" type="email" placeholder="Email" required />
 			<input name="password" type="password" placeholder="Password" required />
 			<button type="submit">Log in</button>
 		</form>
-		<p>Or go to <a href="/admin">/admin</a> to create your first group.</p>
+		<p>Or go to <a href="/setup">/setup</a> to create your first group.</p>
 	</section>
 {:else}
 	<section>
@@ -65,6 +67,38 @@
 					<li>{t.emoji} {t.title}</li>
 				{/each}
 			</ul>
+
+			<section>
+				<h2>Upcoming</h2>
+				{#if tasksUpcoming.length === 0}
+					<p>No upcoming tasks</p>
+				{:else}
+					<ul>
+						{#each tasksUpcoming as t}
+							<li>{t.emoji} {t.title}</li>
+						{/each}
+					</ul>
+				{/if}
+			</section>
+
+			<section>
+				<h2>Unscheduled</h2>
+				{#if tasksNoDate.length === 0}
+					<p>All tasks scheduled</p>
+				{:else}
+					<ul>
+						{#each tasksNoDate as t}
+							<li>{t.emoji} {t.title}</li>
+						{/each}
+					</ul>
+				{/if}
+			</section>
+
+			<button
+				onclick={() => {
+					showAdd = true;
+				}}>Add</button
+			>
 		{/if}
 		<button
 			onclick={async () => {
@@ -74,38 +108,6 @@
 		>
 	</section>
 {/if}
-
-<section>
-	<h2>Upcoming</h2>
-	{#if tasksUpcoming.length === 0}
-		<p>No upcoming tasks</p>
-	{:else}
-		<ul>
-			{#each tasksUpcoming as t}
-				<li>{t.emoji} {t.title}</li>
-			{/each}
-		</ul>
-	{/if}
-</section>
-
-<section>
-	<h2>Unscheduled</h2>
-	{#if tasksNoDate.length === 0}
-		<p>All tasks scheduled</p>
-	{:else}
-		<ul>
-			{#each tasksNoDate as t}
-				<li>{t.emoji} {t.title}</li>
-			{/each}
-		</ul>
-	{/if}
-</section>
-
-<button
-	onclick={() => {
-		showAdd = true;
-	}}>Add</button
->
 
 {#if showAdd}
 	<div>
@@ -120,7 +122,7 @@
 				<input name="groupId" type="number" placeholder="Group ID" required />
 				<select name="assignedUserId">
 					<option value="">Unassigned</option>
-					{#each data.users ?? ([] as UserLite[]) as u}
+					{#each data.users as u}
 						<option value={u.id}>{u.name}</option>
 					{/each}
 				</select>
@@ -143,12 +145,12 @@
 				<input name="title" placeholder="Title" required />
 				<input name="groupId" type="number" placeholder="Group ID" required />
 				<select name="fromUserId" required>
-					{#each data.users ?? ([] as UserLite[]) as u}
+					{#each data.users as u}
 						<option value={u.id}>{u.name}</option>
 					{/each}
 				</select>
 				<select name="toUserId" required>
-					{#each data.users ?? ([] as UserLite[]) as u}
+					{#each data.users as u}
 						<option value={u.id}>{u.name}</option>
 					{/each}
 				</select>
