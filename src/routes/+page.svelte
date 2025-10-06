@@ -177,7 +177,7 @@
 				<input name="recurrenceInterval" type="number" min="1" placeholder="X" />
 				<select name="assignedUserId">
 					<option value="">Unassigned</option>
-					{#each data.users as u}
+					{#each data.users ?? [] as u}
 						<option value={u.id}>{u.name}</option>
 					{/each}
 				</select>
@@ -208,7 +208,7 @@
 				<input name="title" placeholder="Title" required />
 				<!-- fromUser is current user -->
 				<select name="toUserId" required>
-					{#each data.users as u}
+					{#each data.users ?? [] as u}
 						<option value={u.id}>{u.name}</option>
 					{/each}
 				</select>

@@ -44,7 +44,7 @@
 		}}
 	>
 		<select name="groupId">
-			{#each data.groups as g}
+			{#each data.groups ?? [] as g}
 				<option value={g.id}>{g.title} (#{g.id})</option>
 			{/each}
 		</select>
@@ -107,7 +107,7 @@
 		}}
 	>
 		<select name="groupId">
-			{#each data.groups as g}
+			{#each data.groups ?? [] as g}
 				<option value={g.id} selected={data.groupId != null && g.id === data.groupId}
 					>{g.title} (#{g.id})</option
 				>
