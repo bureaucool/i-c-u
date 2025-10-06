@@ -15,6 +15,10 @@
 	} = $props();
 	let showAdd = $state(false);
 	let formType: 'task' | 'treat' = $state('task');
+	let loginMsg = $state<string | null>(null);
+	let loginErr = $state<string | null>(null);
+	let addMsg = $state<string | null>(null);
+	let addErr = $state<string | null>(null);
 
 	const now = new Date();
 	const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -40,20 +44,29 @@
 		<form
 			onsubmit={async (e) => {
 				e.preventDefault();
+				loginMsg = loginErr = null;
 				const form = new FormData(e.currentTarget as HTMLFormElement);
 				const body = Object.fromEntries(form.entries());
-				await fetch('/api/auth', {
+				const res = await fetch('/api/auth', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(body)
 				});
-				// location.reload();
+				if (res.ok) {
+					loginMsg = 'Logged in. Reloading...';
+					location.reload();
+				} else {
+					const err = await res.json().catch(() => ({}));
+					loginErr = err?.error || err?.message || 'Login failed';
+				}
 			}}
 		>
 			<input name="email" type="email" placeholder="Email" required />
 			<input name="password" type="password" placeholder="Password" required />
 			<button type="submit">Log in</button>
 		</form>
+		{#if loginMsg}<p>{loginMsg}</p>{/if}
+		{#if loginErr}<p>{loginErr}</p>{/if}
 		<p>Or go to <a href="/setup">/setup</a> to create your first group.</p>
 	</section>
 {:else}
@@ -93,18 +106,12 @@
 					</ul>
 				{/if}
 			</section>
-
-			<button
-				onclick={() => {
-					showAdd = true;
-				}}>Add</button
-			>
 		{/if}
+
 		<button
-			onclick={async () => {
-				await fetch('/api/auth', { method: 'DELETE' });
-				location.reload();
-			}}>Logout</button
+			onclick={() => {
+				showAdd = true;
+			}}>Add</button
 		>
 	</section>
 {/if}
@@ -117,7 +124,27 @@
 		</div>
 
 		{#if formType === 'task'}
-			<form method="POST" action="?/createTask">
+			<form
+				onsubmit={async (e) => {
+					e.preventDefault();
+					addMsg = addErr = null;
+					const form = new FormData(e.currentTarget as HTMLFormElement);
+					const body = Object.fromEntries(form.entries());
+					const res = await fetch('/api/tasks', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(body)
+					});
+					if (res.ok) {
+						addMsg = 'Task created';
+						showAdd = false;
+						location.reload();
+					} else {
+						const err = await res.json().catch(() => ({}));
+						addErr = err?.error || err?.message || 'Failed to create task';
+					}
+				}}
+			>
 				<input name="title" placeholder="Title" required />
 				<input name="groupId" type="number" placeholder="Group ID" required />
 				<select name="assignedUserId">
@@ -132,14 +159,22 @@
 			<form
 				onsubmit={async (e) => {
 					e.preventDefault();
+					addMsg = addErr = null;
 					const form = new FormData(e.currentTarget as HTMLFormElement);
 					const body = Object.fromEntries(form.entries());
-					await fetch('/api/treats', {
+					const res = await fetch('/api/treats', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify(body)
 					});
-					showAdd = false;
+					if (res.ok) {
+						addMsg = 'Treat created';
+						showAdd = false;
+						location.reload();
+					} else {
+						const err = await res.json().catch(() => ({}));
+						addErr = err?.error || err?.message || 'Failed to create treat';
+					}
 				}}
 			>
 				<input name="title" placeholder="Title" required />
@@ -158,6 +193,9 @@
 				<button type="submit">Create Treat</button>
 			</form>
 		{/if}
+
+		{#if addMsg}<p>{addMsg}</p>{/if}
+		{#if addErr}<p>{addErr}</p>{/if}
 
 		<button
 			onclick={() => {
