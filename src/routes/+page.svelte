@@ -35,38 +35,40 @@
 	const tasksNoDate = (data.tasks ?? []).filter((t) => t.scheduledAt == null);
 </script>
 
-<div class="fixed top-3 right-3">
-	<div class="flex flex-col gap-y-2">
-		<form
-			class="flex flex-col gap-y-2"
-			onsubmit={async (e) => {
-				e.preventDefault();
-				loginMsg = loginErr = null;
-				const form = new FormData(e.currentTarget as HTMLFormElement);
-				const body = Object.fromEntries(form.entries());
-				const res = await fetch('/api/auth', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(body)
-				});
-				if (res.ok) {
-					loginMsg = 'Logged in. Reloading...';
-					location.reload();
-				} else {
-					const err = await res.json().catch(() => ({}));
-					loginErr = err?.error || err?.message || 'Login failed';
-				}
-			}}
-		>
-			<input name="email" type="email" placeholder="Email" required />
-			<input name="password" type="password" placeholder="Password" required />
-			<button type="submit">Log in</button>
-		</form>
-		{#if loginMsg}<p>{loginMsg}</p>{/if}
-		{#if loginErr}<p>{loginErr}</p>{/if}
+{#if !data.user}
+	<div class="fixed top-3 right-3">
+		<div class="flex flex-col gap-y-2">
+			<form
+				class="flex flex-col gap-y-2"
+				onsubmit={async (e) => {
+					e.preventDefault();
+					loginMsg = loginErr = null;
+					const form = new FormData(e.currentTarget as HTMLFormElement);
+					const body = Object.fromEntries(form.entries());
+					const res = await fetch('/api/auth', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(body)
+					});
+					if (res.ok) {
+						loginMsg = 'Logged in. Reloading...';
+						location.reload();
+					} else {
+						const err = await res.json().catch(() => ({}));
+						loginErr = err?.error || err?.message || 'Login failed';
+					}
+				}}
+			>
+				<input name="email" type="email" placeholder="Email" required />
+				<input name="password" type="password" placeholder="Password" required />
+				<button type="submit">Log in</button>
+			</form>
+			{#if loginMsg}<p>{loginMsg}</p>{/if}
+			{#if loginErr}<p>{loginErr}</p>{/if}
+		</div>
+		<div class="">Or <a href="/setup">setup</a> a new group</div>
 	</div>
-	<div class="">Or <a href="/setup">setup</a> a new group</div>
-</div>
+{/if}
 
 {#if !data.user}
 	<section class="flex h-screen w-screen flex-col items-center justify-center gap-y-5">
@@ -84,40 +86,41 @@
 					<li>{t.emoji} {t.title}</li>
 				{/each}
 			</ul>
-
-			<section>
-				<h2>Upcoming</h2>
-				{#if tasksUpcoming.length === 0}
-					<p>No upcoming tasks</p>
-				{:else}
-					<ul>
-						{#each tasksUpcoming as t}
-							<li>{t.emoji} {t.title}</li>
-						{/each}
-					</ul>
-				{/if}
-			</section>
-
-			<section>
-				<h2>Unscheduled</h2>
-				{#if tasksNoDate.length === 0}
-					<p>All tasks scheduled</p>
-				{:else}
-					<ul>
-						{#each tasksNoDate as t}
-							<li>{t.emoji} {t.title}</li>
-						{/each}
-					</ul>
-				{/if}
-			</section>
 		{/if}
+		<section>
+			<h2>Upcoming</h2>
+			{#if tasksUpcoming.length === 0}
+				<p>No upcoming tasks</p>
+			{:else}
+				<ul>
+					{#each tasksUpcoming as t}
+						<li>{t.emoji} {t.title}</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
 
+		<section>
+			<h2>Unscheduled</h2>
+			{#if tasksNoDate.length === 0}
+				<p>All tasks scheduled</p>
+			{:else}
+				<ul>
+					{#each tasksNoDate as t}
+						<li>{t.emoji} {t.title}</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
+	</section>
+
+	<div class="fixed inset-x-3 bottom-3">
 		<button
 			onclick={() => {
 				showAdd = true;
 			}}>Add</button
 		>
-	</section>
+	</div>
 {/if}
 
 {#if showAdd}
