@@ -73,7 +73,7 @@
 		required
 		bind:value={title}
 		onblur={async () => {
-			if (!task) {
+			if (!task && title.trim().length > 0) {
 				const tempEmoji = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`);
 				if (tempEmoji.ok) {
 					const tempEmojiData = await tempEmoji.json();

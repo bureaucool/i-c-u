@@ -1,9 +1,10 @@
 <script lang="ts">
 	import TaskItem from '$lib/components/task-item.svelte';
 	import type { Task, User } from '$lib/types';
-	import EmojiPicker from '$lib/components/emoji-picker.svelte';
 	import TaskDialog from '$lib/components/task-dialog.svelte';
+	import TreatDialog from '$lib/components/treat-dialog.svelte';
 	import { invalidateAll } from '$app/navigation';
+	import Button from '$lib/components/button.svelte';
 
 	let {
 		data
@@ -215,132 +216,138 @@
 		</section>
 	</section>
 
-	<div class="fixed inset-x-3 bottom-3">
-		<button
+	<div class="pointer-events-none fixed inset-x-3 bottom-3 flex justify-center">
+		<Button
 			onclick={() => {
 				editOpen = false;
 				selectedTask = null;
 				showAdd = true;
-			}}>Add</button
+			}}>Add</Button
 		>
 	</div>
 {/if}
 
 {#if showAdd}
-	<div>
-		{#if !editOpen}
-			<div>
-				<button onclick={() => (formType = 'task')}>Task</button>
-				<button onclick={() => (formType = 'treat')}>Treat</button>
-			</div>
-		{/if}
+	<div class="fixed inset-0 z-20 flex items-center justify-center bg-white/80 px-10">
+		<button
+			aria-label="Close"
+			class="absolute inset-0 z-0 bg-black/50"
+			onclick={() => (showAdd = false)}
+		></button>
+		<div class="relative z-10 flex flex-col gap-y-10 rounded-md bg-black/50 p-5 text-white">
+			{#if !editOpen}
+				<div class="flex flex-row justify-center gap-x-5">
+					<button
+						class={formType !== 'task' ? 'opacity-50' : ''}
+						onclick={() => (formType = 'task')}>Task</button
+					>
+					<button
+						class={formType !== 'treat' ? 'opacity-50' : ''}
+						onclick={() => (formType = 'treat')}>Treat</button
+					>
+				</div>
+			{/if}
 
-		{#if formType === 'task'}
-			{#if editOpen}
-				<TaskDialog
-					task={selectedTask}
-					users={data.users ?? []}
-					extras={(data.tasks ?? [])
-						.map((t) => t.emoji)
-						.filter((e) => typeof e === 'string') as string[]}
-					onCancel={() => (editOpen = false)}
-					onSave={async (payload) => {
-						let ok = false;
-						if (selectedTask) {
-							const res = await fetch(`/api/tasks/${selectedTask.id}`, {
-								method: 'PATCH',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify(payload)
-							});
-							ok = res.ok;
-						} else {
+			{#if formType === 'task'}
+				{#if editOpen}
+					<TaskDialog
+						task={selectedTask}
+						users={data.users ?? []}
+						extras={(data.tasks ?? [])
+							.map((t) => t.emoji)
+							.filter((e) => typeof e === 'string') as string[]}
+						onCancel={() => {
+							editOpen = false;
+							showAdd = false;
+						}}
+						onSave={async (payload) => {
+							let ok = false;
+							if (selectedTask) {
+								const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+									method: 'PATCH',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify(payload)
+								});
+								ok = res.ok;
+							} else {
+								const res = await fetch('/api/tasks', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify(payload)
+								});
+								ok = res.ok;
+							}
+							if (ok) {
+								editOpen = false;
+								// location.reload();
+								invalidateAll();
+							}
+						}}
+						onDelete={async () => {
+							if (!selectedTask) return;
+							const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
+							if (res.ok) {
+								editOpen = false;
+								// location.reload();
+								invalidateAll();
+							}
+						}}
+					/>
+				{:else}
+					<TaskDialog
+						task={null}
+						users={data.users ?? []}
+						extras={(data.tasks ?? [])
+							.map((t) => t.emoji)
+							.filter((e) => typeof e === 'string') as string[]}
+						onCancel={() => {
+							showAdd = false;
+						}}
+						onSave={async (payload) => {
+							addMsg = addErr = null;
 							const res = await fetch('/api/tasks', {
 								method: 'POST',
 								headers: { 'Content-Type': 'application/json' },
 								body: JSON.stringify(payload)
 							});
-							ok = res.ok;
-						}
-						if (ok) {
-							editOpen = false;
-							location.reload();
-						}
-					}}
-					onDelete={async () => {
-						if (!selectedTask) return;
-						const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
-						if (res.ok) {
-							editOpen = false;
-							location.reload();
-						}
-					}}
-				/>
+							if (res.ok) {
+								showAdd = false;
+								// location.reload();
+								invalidateAll();
+							} else {
+								addErr = 'Failed to create task';
+							}
+						}}
+					/>
+				{/if}
 			{:else}
-				<TaskDialog
-					task={null}
+				<TreatDialog
 					users={data.users ?? []}
-					extras={(data.tasks ?? [])
-						.map((t) => t.emoji)
-						.filter((e) => typeof e === 'string') as string[]}
-					onCancel={() => (showAdd = false)}
+					onCancel={() => {
+						showAdd = false;
+					}}
 					onSave={async (payload) => {
 						addMsg = addErr = null;
-						const res = await fetch('/api/tasks', {
+						const res = await fetch('/api/treats', {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
 							body: JSON.stringify(payload)
 						});
 						if (res.ok) {
+							addMsg = 'Treat created';
 							showAdd = false;
-							location.reload();
+							invalidateAll();
 						} else {
-							addErr = 'Failed to create task';
+							const err = await res.json().catch(() => ({}));
+							addErr = err?.error || err?.message || 'Failed to create treat';
 						}
 					}}
 				/>
 			{/if}
-		{:else}
-			<form
-				onsubmit={async (e) => {
-					e.preventDefault();
-					addMsg = addErr = null;
-					const form = new FormData(e.currentTarget as HTMLFormElement);
-					const body = Object.fromEntries(form.entries());
-					const res = await fetch('/api/treats', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(body)
-					});
-					if (res.ok) {
-						addMsg = 'Treat created';
-						showAdd = false;
-						location.reload();
-					} else {
-						const err = await res.json().catch(() => ({}));
-						addErr = err?.error || err?.message || 'Failed to create treat';
-					}
-				}}
-			>
-				<input name="title" placeholder="Title" required />
-				<!-- fromUser is current user -->
-				<select name="toUserId" required>
-					{#each data.users ?? [] as u}
-						<option value={u.id}>{u.name}</option>
-					{/each}
-				</select>
-				<input name="valueMinutes" type="number" placeholder="Value (minutes)" required />
-				<button type="submit">Create Treat</button>
-			</form>
-		{/if}
 
-		{#if addMsg}<p>{addMsg}</p>{/if}
-		{#if addErr}<p>{addErr}</p>{/if}
-
-		<button
-			onclick={() => {
-				showAdd = false;
-			}}>Close</button
-		>
+			{#if addMsg}<p>{addMsg}</p>{/if}
+			{#if addErr}<p>{addErr}</p>{/if}
+		</div>
 	</div>
 {/if}
 
@@ -362,7 +369,7 @@
 				});
 				if (res.ok) {
 					completeOpen = false;
-					location.reload();
+					invalidateAll();
 				}
 			}}
 		>
