@@ -326,7 +326,10 @@
 				const res = await fetch(`/api/tasks/${selectedTask.id}`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ durationMinutes: Number(completeMinutes ?? 0) || 0 })
+					body: JSON.stringify({
+						durationMinutes: Number(completeMinutes ?? 0) || 0,
+						userId: data.user?.id
+					})
 				});
 				if (res.ok) {
 					completeOpen = false;
