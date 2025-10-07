@@ -8,7 +8,8 @@
 		users,
 		extras = [],
 		onSave,
-		onCancel
+		onCancel,
+		onDelete
 	}: {
 		task: Task | null;
 		users: User[];
@@ -22,6 +23,7 @@
 			recurrenceInterval: number | null;
 		}) => Promise<void> | void;
 		onCancel: () => void;
+		onDelete?: () => Promise<void> | void;
 	} = $props();
 
 	let title = $state(task?.title ?? '');
@@ -39,7 +41,8 @@
 		((task as any)?.recurrenceInterval ?? '') ? String((task as any).recurrenceInterval) : ''
 	);
 
-	let foundEmojis = $state<Object[]>([]);
+	// API returns array of objects with at least an `emoji` string; be permissive
+	let foundEmojis = $state<Array<{ emoji?: string; character?: string }>>([]);
 
 	let showPicker = $state(false);
 
@@ -84,7 +87,12 @@
 		{#if foundEmojis.length > 0}
 			<div>
 				{#each foundEmojis as emojiItem}
-					<button type="button" onclick={() => (emoji = emojiItem.emoji)}>{emojiItem.emoji}</button>
+					<button
+						type="button"
+						onclick={() => (emoji = emojiItem.emoji || emojiItem.character || '')}
+					>
+						{emojiItem.emoji || emojiItem.character}
+					</button>
 				{/each}
 			</div>
 		{/if}
@@ -123,4 +131,14 @@
 	</select>
 	<button type="submit">Save</button>
 	<button type="button" onclick={onCancel}>Cancel</button>
+	{#if task}
+		<button
+			type="button"
+			onclick={async () => {
+				if (confirm('Delete this task?')) {
+					await onDelete?.();
+				}
+			}}>Delete</button
+		>
+	{/if}
 </form>

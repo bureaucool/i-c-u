@@ -266,6 +266,14 @@
 							location.reload();
 						}
 					}}
+					onDelete={async () => {
+						if (!selectedTask) return;
+						const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
+						if (res.ok) {
+							editOpen = false;
+							location.reload();
+						}
+					}}
 				/>
 			{:else}
 				<TaskDialog

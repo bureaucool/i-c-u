@@ -38,3 +38,12 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	if (!updated) throw error(404, 'task not found');
 	return json(updated);
 };
+
+export const DELETE: RequestHandler = async ({ params }) => {
+	const id = Number(params.id);
+	if (!Number.isFinite(id)) throw error(400, 'invalid id');
+
+	const [deleted] = await db.delete(task).where(eq(task.id, id)).returning();
+	if (!deleted) throw error(404, 'task not found');
+	return json({ ok: true });
+};
