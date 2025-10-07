@@ -1,5 +1,8 @@
 <script lang="ts">
+	import TaskItem from '$lib/components/task-item.svelte';
 	import type { Task, User } from '$lib/types';
+	import EmojiPicker from '$lib/components/emoji-picker.svelte';
+	import TaskDialog from '$lib/components/task-dialog.svelte';
 
 	let {
 		data
@@ -12,6 +15,25 @@
 	let loginErr = $state<string | null>(null);
 	let addMsg = $state<string | null>(null);
 	let addErr = $state<string | null>(null);
+
+	let title = $state<string | null>(null);
+	let emoji = $state<string | null>('');
+	let selectableEmojis = $state<string[]>([]);
+	let showPicker = $state(false);
+
+	// Overlays for complete/edit
+	let completeOpen = $state(false);
+	let editOpen = $state(false);
+	let selectedTask: Task | null = $state(null);
+	let completeMinutes = $state<number | null>(null);
+	// Edit state (reuses add fields)
+	let editTitle = $state<string>('');
+	let editEmoji = $state<string>('');
+	let editAssignedUserId = $state<string>('');
+	let editDate = $state<string>('');
+	let editTime = $state<string>('');
+	let editRecurrenceType = $state<string>('');
+	let editRecurrenceInterval = $state<string>('');
 
 	const now = new Date();
 	const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -26,6 +48,52 @@
 		return ts > endOfDay;
 	});
 	const tasksNoDate = (data.tasks ?? []).filter((t) => t.scheduledAt == null);
+
+	async function checkFormEmoji() {
+		const title = (document.querySelector('input[name="title"]') as HTMLInputElement)?.value;
+		if (!title) {
+			selectableEmojis = [];
+			return;
+		}
+		try {
+			const foundEmojis = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`).then((res) =>
+				res.json()
+			);
+			selectableEmojis = Array.isArray(foundEmojis)
+				? foundEmojis
+						.map((e: any) => (typeof e === 'string' ? e : e.emoji || e.character))
+						.filter((ch: any) => typeof ch === 'string' && ch.length > 0)
+				: [];
+		} catch {
+			selectableEmojis = [];
+		}
+	}
+
+	function openComplete(t: Task) {
+		selectedTask = t;
+		completeMinutes = Number((t as any).durationMinutes ?? '') || null;
+		completeOpen = true;
+	}
+
+	function openEdit(t: Task) {
+		showAdd = true;
+		selectedTask = t;
+		editTitle = t.title ?? '';
+		editEmoji = (t.emoji ?? '') as string;
+		editAssignedUserId = t.assignedUserId ? String(t.assignedUserId) : '';
+		if (t.scheduledAt) {
+			const d = new Date(Number(t.scheduledAt));
+			editDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+			editTime = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+		} else {
+			editDate = '';
+			editTime = '';
+		}
+		editRecurrenceType = ((t as any).recurrenceType ?? '') as string;
+		editRecurrenceInterval =
+			((t as any).recurrenceInterval ?? '') ? String((t as any).recurrenceInterval) : '';
+		editOpen = true;
+	}
 </script>
 
 {#if !data.user}
@@ -76,7 +144,13 @@
 		{:else}
 			<ul>
 				{#each tasksToday as t}
-					<li>{t.emoji} {t.title}</li>
+					<li>
+						<TaskItem
+							task={t}
+							clickComplete={() => openComplete(t)}
+							clickEdit={() => openEdit(t)}
+						/>
+					</li>
 				{/each}
 			</ul>
 		{/if}
@@ -87,7 +161,13 @@
 			{:else}
 				<ul>
 					{#each tasksUpcoming as t}
-						<li>{t.emoji} {t.title}</li>
+						<li>
+							<TaskItem
+								task={t}
+								clickComplete={() => openComplete(t)}
+								clickEdit={() => openEdit(t)}
+							/>
+						</li>
 					{/each}
 				</ul>
 			{/if}
@@ -100,7 +180,13 @@
 			{:else}
 				<ul>
 					{#each tasksNoDate as t}
-						<li>{t.emoji} {t.title}</li>
+						<li>
+							<TaskItem
+								task={t}
+								clickComplete={() => openComplete(t)}
+								clickEdit={() => openEdit(t)}
+							/>
+						</li>
 					{/each}
 				</ul>
 			{/if}
@@ -110,6 +196,8 @@
 	<div class="fixed inset-x-3 bottom-3">
 		<button
 			onclick={() => {
+				editOpen = false;
+				selectedTask = null;
 				showAdd = true;
 			}}>Add</button
 		>
@@ -118,71 +206,69 @@
 
 {#if showAdd}
 	<div>
-		<div>
-			<button onclick={() => (formType = 'task')}>Task</button>
-			<button onclick={() => (formType = 'treat')}>Treat</button>
-		</div>
+		{#if !editOpen}
+			<div>
+				<button onclick={() => (formType = 'task')}>Task</button>
+				<button onclick={() => (formType = 'treat')}>Treat</button>
+			</div>
+		{/if}
 
 		{#if formType === 'task'}
-			<form
-				onsubmit={async (e) => {
-					e.preventDefault();
-					addMsg = addErr = null;
-					const form = new FormData(e.currentTarget as HTMLFormElement);
-					const body = Object.fromEntries(form.entries());
-					// compute scheduledAt from optional date/time
-					const date = (body.date as string | undefined) ?? '';
-					const time = (body.time as string | undefined) ?? '';
-					let scheduledAt: number | null = null;
-					if (date) {
-						const iso = time ? `${date}T${time}:00` : `${date}T00:00:00`;
-						scheduledAt = new Date(iso).getTime();
-					}
-					const payload = {
-						title: body.title,
-						assignedUserId: body.assignedUserId || null,
-						scheduledAt,
-						recurrenceType: body.recurrenceType || null,
-						recurrenceInterval: body.recurrenceInterval ? Number(body.recurrenceInterval) : null
-					};
-					const res = await fetch('/api/tasks', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(payload)
-					});
-					if (res.ok) {
-						addMsg = 'Task created';
-						showAdd = false;
-						location.reload();
-					} else {
-						const err = await res.json().catch(() => ({}));
-						addErr = err?.error || err?.message || 'Failed to create task';
-					}
-				}}
-			>
-				<input name="title" placeholder="Title" required />
-				<!-- optional date/time -->
-				<input name="date" type="date" />
-				<input name="time" type="time" />
-				<!-- recurrence -->
-				<select name="recurrenceType">
-					<option value="">One-time</option>
-					<option value="daily">Daily</option>
-					<option value="weekly">Weekly</option>
-					<option value="monthly">Monthly</option>
-					<option value="every_x_days">Every X days</option>
-					<option value="every_x_weeks">Every X weeks</option>
-					<option value="every_x_months">Every X months</option>
-				</select>
-				<input name="recurrenceInterval" type="number" min="1" placeholder="X" />
-				<select name="assignedUserId">
-					<option value="">Unassigned</option>
-					{#each data.users ?? [] as u}
-						<option value={u.id}>{u.name}</option>
-					{/each}
-				</select>
-				<button type="submit">Create Task</button>
-			</form>
+			{#if editOpen}
+				<TaskDialog
+					task={selectedTask}
+					users={data.users ?? []}
+					extras={(data.tasks ?? [])
+						.map((t) => t.emoji)
+						.filter((e) => typeof e === 'string') as string[]}
+					onCancel={() => (editOpen = false)}
+					onSave={async (payload) => {
+						let ok = false;
+						if (selectedTask) {
+							const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+								method: 'PATCH',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify(payload)
+							});
+							ok = res.ok;
+						} else {
+							const res = await fetch('/api/tasks', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify(payload)
+							});
+							ok = res.ok;
+						}
+						if (ok) {
+							editOpen = false;
+							location.reload();
+						}
+					}}
+				/>
+			{:else}
+				<TaskDialog
+					task={null}
+					users={data.users ?? []}
+					extras={(data.tasks ?? [])
+						.map((t) => t.emoji)
+						.filter((e) => typeof e === 'string') as string[]}
+					onCancel={() => (showAdd = false)}
+					onSave={async (payload) => {
+						addMsg = addErr = null;
+						const res = await fetch('/api/tasks', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(payload)
+						});
+						if (res.ok) {
+							showAdd = false;
+							location.reload();
+						} else {
+							addErr = 'Failed to create task';
+						}
+					}}
+				/>
+			{/if}
 		{:else}
 			<form
 				onsubmit={async (e) => {
@@ -225,5 +311,32 @@
 				showAdd = false;
 			}}>Close</button
 		>
+	</div>
+{/if}
+
+{#if completeOpen && selectedTask}
+	<div>
+		<h3>Complete task</h3>
+		<p>{selectedTask.title}</p>
+		<form
+			onsubmit={async (e) => {
+				e.preventDefault();
+				if (selectedTask == null) return;
+				const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ durationMinutes: Number(completeMinutes ?? 0) || 0 })
+				});
+				// if (res.ok) {
+				// 	completeOpen = false;
+				// 	location.reload();
+				// }
+				console.log(res, completeMinutes);
+			}}
+		>
+			<input type="number" min="0" step="1" placeholder="Minutes" bind:value={completeMinutes} />
+			<button type="submit">Save</button>
+			<button type="button" onclick={() => (completeOpen = false)}>Cancel</button>
+		</form>
 	</div>
 {/if}

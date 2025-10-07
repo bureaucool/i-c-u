@@ -9,14 +9,24 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	if (!Number.isFinite(id)) throw error(400, 'invalid id');
 
 	const body = await request.json().catch(() => ({}) as Record<string, unknown>);
+	const title = typeof body.title === 'string' ? body.title.trim() : undefined;
+	const emoji =
+		typeof (body as any).emoji === 'string' ? ((body as any).emoji as string) : undefined;
 	const durationMinutes = body.durationMinutes == null ? undefined : Number(body.durationMinutes);
 	const assignedUserId = body.assignedUserId == null ? undefined : Number(body.assignedUserId);
 	const scheduledAt = body.scheduledAt == null ? undefined : Number(body.scheduledAt);
+	const recurrenceType = typeof body.recurrenceType === 'string' ? body.recurrenceType : undefined;
+	const recurrenceInterval =
+		body.recurrenceInterval == null ? undefined : Number(body.recurrenceInterval);
 
 	const updates: Record<string, unknown> = {};
+	if (title !== undefined) updates.title = title;
+	if (emoji !== undefined) updates.emoji = emoji;
 	if (durationMinutes !== undefined) updates.durationMinutes = durationMinutes;
 	if (assignedUserId !== undefined) updates.assignedUserId = assignedUserId;
 	if (scheduledAt !== undefined) updates.scheduledAt = scheduledAt;
+	if (recurrenceType !== undefined) updates.recurrenceType = recurrenceType;
+	if (recurrenceInterval !== undefined) updates.recurrenceInterval = recurrenceInterval;
 
 	if (Object.keys(updates).length === 0) return json({});
 

@@ -21,6 +21,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const title = typeof body.title === 'string' ? body.title.trim() : '';
 	const groupId =
 		body.groupId == null ? (locals.groupId as number | undefined) : Number(body.groupId);
+	const emojiInput = typeof (body as any).emoji === 'string' && (body as any).emoji.length > 0 ? ((body as any).emoji as string) : null;
 	const assignedUserId = body.assignedUserId == null ? null : Number(body.assignedUserId);
 	const scheduledAt = body.scheduledAt == null ? null : Number(body.scheduledAt);
 	const recurrenceType = typeof body.recurrenceType === 'string' ? body.recurrenceType : null;
@@ -48,7 +49,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		if (!m) throw error(400, 'assigned user not in group');
 	}
 
-	const emoji = await getEmojiForTitle(title);
+	const emoji = emojiInput ?? (await getEmojiForTitle(title));
 
 	const [created] = await db
 		.insert(task)
