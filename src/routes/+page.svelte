@@ -8,7 +8,13 @@
 	let {
 		data
 	}: {
-		data: { user?: { id: number; name: string } | null; tasks?: Task[]; users?: User[] };
+		data: {
+			user?: { id: number; name: string } | null;
+			tasks?: Task[];
+			activeTasks?: Task[];
+			completedTasks?: Task[];
+			users?: User[];
+		};
 	} = $props();
 	let showAdd = $state(false);
 	let formType: 'task' | 'treat' = $state('task');
@@ -40,15 +46,15 @@
 	const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 	const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
 
-	const tasksToday = (data.tasks ?? []).filter((t) => {
+	const tasksToday = (data.activeTasks ?? data.tasks ?? []).filter((t) => {
 		const ts = Number(t.scheduledAt ?? 0);
 		return ts >= startOfDay && ts <= endOfDay;
 	});
-	const tasksUpcoming = (data.tasks ?? []).filter((t) => {
+	const tasksUpcoming = (data.activeTasks ?? data.tasks ?? []).filter((t) => {
 		const ts = Number(t.scheduledAt ?? 0);
 		return ts > endOfDay;
 	});
-	const tasksNoDate = (data.tasks ?? []).filter((t) => t.scheduledAt == null);
+	const tasksNoDate = (data.activeTasks ?? data.tasks ?? []).filter((t) => t.scheduledAt == null);
 
 	async function checkFormEmoji() {
 		const title = (document.querySelector('input[name="title"]') as HTMLInputElement)?.value;
@@ -187,6 +193,21 @@
 								clickComplete={() => openComplete(t)}
 								clickEdit={() => openEdit(t)}
 							/>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
+
+		<section>
+			<h2>Completed</h2>
+			{#if (data.completedTasks ?? []).length === 0}
+				<p>No completed tasks</p>
+			{:else}
+				<ul>
+					{#each data.completedTasks ?? [] as t}
+						<li>
+							<TaskItem task={t} clickComplete={() => {}} clickEdit={() => openEdit(t)} />
 						</li>
 					{/each}
 				</ul>
@@ -333,9 +354,8 @@
 				});
 				if (res.ok) {
 					completeOpen = false;
-					invalidateAll();
+					location.reload();
 				}
-				console.log(res, completeMinutes);
 			}}
 		>
 			<input type="number" min="0" step="1" placeholder="Minutes" bind:value={completeMinutes} />

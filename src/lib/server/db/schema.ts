@@ -64,7 +64,8 @@ export const task = sqliteTable('task', {
 	durationMinutes: integer('duration_minutes'), // set when the task is finished
 	scheduledAt: integer('scheduled_at'),
 	recurrenceType: text('recurrence_type'), // RecurrenceType string
-	recurrenceInterval: integer('recurrence_interval') // used for every_x_* variants
+	recurrenceInterval: integer('recurrence_interval'), // used for every_x_* variants
+	completedAt: integer('completed_at')
 });
 
 // Treats can compensate task time between users

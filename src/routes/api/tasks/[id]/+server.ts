@@ -22,7 +22,11 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	const updates: Record<string, unknown> = {};
 	if (title !== undefined) updates.title = title;
 	if (emoji !== undefined) updates.emoji = emoji;
-	if (durationMinutes !== undefined) updates.durationMinutes = durationMinutes;
+	if (durationMinutes !== undefined) {
+		updates.durationMinutes = durationMinutes;
+		// set completedAt when durationMinutes is set
+		updates.completedAt = Date.now();
+	}
 	if (assignedUserId !== undefined) updates.assignedUserId = assignedUserId;
 	if (scheduledAt !== undefined) updates.scheduledAt = scheduledAt;
 	if (recurrenceType !== undefined) updates.recurrenceType = recurrenceType;

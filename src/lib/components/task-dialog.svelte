@@ -1,5 +1,6 @@
 <script lang="ts">
 	import EmojiPicker from '$lib/components/emoji-picker.svelte';
+
 	import type { Task, User } from '$lib/types';
 
 	let {
@@ -38,6 +39,8 @@
 		((task as any)?.recurrenceInterval ?? '') ? String((task as any).recurrenceInterval) : ''
 	);
 
+	let foundEmojis = $state<Object[]>([]);
+
 	let showPicker = $state(false);
 
 	async function submit(e: SubmitEvent) {
@@ -62,10 +65,31 @@
 	<p>Editing task #{task.id}</p>
 {/if}
 <form onsubmit={submit}>
-	<input placeholder="Title" required bind:value={title} />
+	<input
+		placeholder="Title"
+		required
+		bind:value={title}
+		onblur={async () => {
+			if (!task) {
+				const tempEmoji = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`);
+				if (tempEmoji.ok) {
+					const tempEmojiData = await tempEmoji.json();
+					foundEmojis = tempEmojiData;
+				}
+			}
+		}}
+	/>
 	<div>
 		<input name="emoji" type={!emoji ? 'hidden' : 'text'} value={emoji ?? ''} />
-		<button type="button" onclick={() => (showPicker = true)}>browse</button>
+		{#if foundEmojis.length > 0}
+			<div>
+				{#each foundEmojis as emojiItem}
+					<button type="button" onclick={() => (emoji = emojiItem.emoji)}>{emojiItem.emoji}</button>
+				{/each}
+			</div>
+		{/if}
+		{#if !showPicker}<button type="button" onclick={() => (showPicker = true)}>browse</button>{/if}
+		{#if showPicker}<button type="button" onclick={() => (showPicker = false)}>hide</button>{/if}
 		{#if showPicker}
 			<EmojiPicker
 				onPick={(e) => {

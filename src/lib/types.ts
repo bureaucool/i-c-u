@@ -11,6 +11,7 @@ export type Task = {
 	scheduledAt: number | null;
 	assignedUserId: number | null;
 	durationMinutes?: number | null;
+	completedAt?: number | null;
 	recurrenceType?: string | null;
 	recurrenceInterval?: number | null;
 };
