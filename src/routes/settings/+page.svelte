@@ -21,9 +21,8 @@
 	let pwdErr = $state<string | null>(null);
 </script>
 
-<h2>Settings</h2>
-
 <button
+	class="fixed top-3 right-3 z-40 cursor-pointer p-3 opacity-30 md:hover:opacity-100"
 	onclick={async () => {
 		await fetch('/api/auth', { method: 'DELETE' });
 		await invalidateAll();
@@ -31,90 +30,95 @@
 	}}>Logout</button
 >
 
-<section>
-	<h3>Group Title</h3>
-	<form
-		onsubmit={async (e) => {
-			e.preventDefault();
-			groupMsg = groupErr = null;
-			const form = new FormData(e.currentTarget as HTMLFormElement);
-			const res = await fetch('?/updateGroup', { method: 'POST', body: form });
-			if (res.ok) groupMsg = 'Group title updated';
-			else groupErr = 'Failed to update group';
-		}}
-	>
-		<select name="groupId">
+<div class="flex flex-col gap-y-10 px-10 py-20">
+	<section class="">
+		<h2 class="mb-10">Settings</h2>
+		<form
+			onsubmit={async (e) => {
+				e.preventDefault();
+				groupMsg = groupErr = null;
+				const form = new FormData(e.currentTarget as HTMLFormElement);
+				const res = await fetch('?/updateGroup', { method: 'POST', body: form });
+				if (res.ok) groupMsg = 'Group title updated';
+				else groupErr = 'Failed to update group';
+			}}
+		>
+			<input name="groupId" type="hidden" value={data.groupId} />
+			<div>Group title</div>
 			{#each data.groups ?? [] as g}
-				<option value={g.id}>{g.title} (#{g.id})</option>
+				{#if g.id === data.groupId}
+					<div>{g.title}</div>
+				{/if}
 			{/each}
-		</select>
-		<input name="title" placeholder="New title" required />
-		<button type="submit">Save</button>
-	</form>
-	{#if groupMsg}<p>{groupMsg}</p>{/if}
-	{#if groupErr}<p>{groupErr}</p>{/if}
-</section>
 
-<section>
-	<h3>User Availability (minutes/week)</h3>
-	<form
-		onsubmit={async (e) => {
-			e.preventDefault();
-			availMsg = availErr = null;
-			const form = new FormData(e.currentTarget as HTMLFormElement);
-			const res = await fetch('?/updateAvailability', { method: 'POST', body: form });
-			if (res.ok) availMsg = 'Availability updated';
-			else availErr = 'Failed to update availability';
-		}}
-	>
-		<input type="hidden" name="userId" value={data.user?.id} />
-		<input name="availableTimeMinutesPerWeek" type="number" placeholder="e.g. 600" required />
-		<button type="submit">Save</button>
-	</form>
-	{#if availMsg}<p>{availMsg}</p>{/if}
-	{#if availErr}<p>{availErr}</p>{/if}
-</section>
+			<input name="title" placeholder="New title" required />
+			<button type="submit">Save</button>
+		</form>
+		{#if groupMsg}<p>{groupMsg}</p>{/if}
+		{#if groupErr}<p>{groupErr}</p>{/if}
+	</section>
 
-<section>
-	<h3>Change Password</h3>
-	<form
-		onsubmit={async (e) => {
-			e.preventDefault();
-			pwdMsg = pwdErr = null;
-			const form = new FormData(e.currentTarget as HTMLFormElement);
-			const res = await fetch('?/changePassword', { method: 'POST', body: form });
-			if (res.ok) pwdMsg = 'Password changed';
-			else pwdErr = 'Failed to change password';
-		}}
-	>
-		<input name="newPassword" type="password" placeholder="New password" required />
-		<button type="submit">Change</button>
-	</form>
-	{#if pwdMsg}<p>{pwdMsg}</p>{/if}
-	{#if pwdErr}<p>{pwdErr}</p>{/if}
-</section>
+	<section>
+		<h3>User Availability (minutes/week)</h3>
+		<form
+			onsubmit={async (e) => {
+				e.preventDefault();
+				availMsg = availErr = null;
+				const form = new FormData(e.currentTarget as HTMLFormElement);
+				const res = await fetch('?/updateAvailability', { method: 'POST', body: form });
+				if (res.ok) availMsg = 'Availability updated';
+				else availErr = 'Failed to update availability';
+			}}
+		>
+			<input type="hidden" name="userId" value={data.user?.id} />
+			<input name="availableTimeMinutesPerWeek" type="number" placeholder="e.g. 600" required />
+			<button type="submit">Save</button>
+		</form>
+		{#if availMsg}<p>{availMsg}</p>{/if}
+		{#if availErr}<p>{availErr}</p>{/if}
+	</section>
 
-<section>
-	<h3>Active Group</h3>
-	<form
-		onsubmit={async (e) => {
-			e.preventDefault();
-			groupMsg = groupErr = null;
-			const form = new FormData(e.currentTarget as HTMLFormElement);
-			const res = await fetch('?/selectGroup', { method: 'POST', body: form });
-			if (res.ok) groupMsg = 'Active group updated';
-			else groupErr = 'Failed to set active group';
-		}}
-	>
-		<select name="groupId">
-			{#each data.groups ?? [] as g}
-				<option value={g.id} selected={data.groupId != null && g.id === data.groupId}
-					>{g.title} (#{g.id})</option
-				>
-			{/each}
-		</select>
-		<button type="submit">Use this group</button>
-	</form>
-	{#if groupMsg}<p>{groupMsg}</p>{/if}
-	{#if groupErr}<p>{groupErr}</p>{/if}
-</section>
+	<section>
+		<h3>Change Password</h3>
+		<form
+			onsubmit={async (e) => {
+				e.preventDefault();
+				pwdMsg = pwdErr = null;
+				const form = new FormData(e.currentTarget as HTMLFormElement);
+				const res = await fetch('?/changePassword', { method: 'POST', body: form });
+				if (res.ok) pwdMsg = 'Password changed';
+				else pwdErr = 'Failed to change password';
+			}}
+		>
+			<input name="newPassword" type="password" placeholder="New password" required />
+			<button type="submit">Change</button>
+		</form>
+		{#if pwdMsg}<p>{pwdMsg}</p>{/if}
+		{#if pwdErr}<p>{pwdErr}</p>{/if}
+	</section>
+
+	<section>
+		<h3>Active Group</h3>
+		<form
+			onsubmit={async (e) => {
+				e.preventDefault();
+				groupMsg = groupErr = null;
+				const form = new FormData(e.currentTarget as HTMLFormElement);
+				const res = await fetch('?/selectGroup', { method: 'POST', body: form });
+				if (res.ok) groupMsg = 'Active group updated';
+				else groupErr = 'Failed to set active group';
+			}}
+		>
+			<select name="groupId">
+				{#each data.groups ?? [] as g}
+					<option value={g.id} selected={data.groupId != null && g.id === data.groupId}
+						>{g.title} (#{g.id})</option
+					>
+				{/each}
+			</select>
+			<button type="submit">Use this group</button>
+		</form>
+		{#if groupMsg}<p>{groupMsg}</p>{/if}
+		{#if groupErr}<p>{groupErr}</p>{/if}
+	</section>
+</div>

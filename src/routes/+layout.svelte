@@ -14,16 +14,14 @@
 </svelte:head>
 
 {#if data.user}
-	<div class="fixed inset-x-3 top-3 flex justify-center">
-		<a href="/insights"><Logo /></a>
+	<div class="fixed inset-x-3 top-3 z-30 flex justify-center">
+		<a href={page.url.pathname === '/' ? '/insights' : '/'}><Logo /></a>
 	</div>
 
 	{#if page.url.pathname === '/'}
-		<a aria-label="Settings" class="fixed top-3 right-3 p-3" href="/settings"
-			><div class="h-3 w-3 rounded-full bg-black/50 md:hover:bg-black"></div></a
+		<a aria-label="Settings" class="fixed top-3 right-3 z-40 p-3" href="/settings"
+			><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
 		>
-	{:else if page.url.pathname === '/insights'}
-		<a aria-label="Settings" class="fixed top-3 left-3 z-30 p-3" href="/"><div class="">←</div></a>
 	{/if}
 {/if}
 
