@@ -19,9 +19,13 @@
 	</div>
 
 	{#if page.url.pathname === '/'}
-		<a aria-label="Settings" class="fixed top-3 right-3 z-40 p-3" href="/settings"
-			><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
-		>
+		<div class="pointer-events-none fixed inset-0 top-3 z-40">
+			<div class="mx-auto flex max-w-xl justify-end">
+				<a aria-label="Settings" class="pointer-events-auto p-3" href="/settings"
+					><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
+				>
+			</div>
+		</div>
 	{/if}
 {/if}
 

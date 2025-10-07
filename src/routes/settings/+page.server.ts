@@ -1,9 +1,9 @@
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { group, groupMember, user } from '$lib/server/db/schema';
-import { changePassword } from '$lib/server/auth';
+import { changePassword, createUserWithPassword } from '$lib/server/auth';
 import { fail } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) return { user: null };
@@ -13,7 +13,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.innerJoin(group, eq(groupMember.groupId, group.id))
 		.where(eq(groupMember.userId, locals.user.id));
 	const users = await db.select().from(user);
-	return { user: locals.user, groupId: locals.groupId, groups, users };
+	// fetch current user availability
+	const [me] = await db.select().from(user).where(eq(user.id, locals.user.id)).limit(1);
+	// members of current group
+	let members: Array<{ id: number; name: string; email: string | null }> = [];
+	if (locals.groupId) {
+		members = await db
+			.select({ id: user.id, name: user.name, email: user.email })
+			.from(groupMember)
+			.innerJoin(user, eq(groupMember.userId, user.id))
+			.where(eq(groupMember.groupId, locals.groupId));
+	}
+	return {
+		user: { ...locals.user, availableTimeMinutesPerWeek: me?.availableTimeMinutesPerWeek ?? null },
+		groupId: locals.groupId,
+		groups,
+		users,
+		members
+	};
 };
 
 export const actions: Actions = {
@@ -60,6 +77,45 @@ export const actions: Actions = {
 		const newPassword = String(form.get('newPassword') ?? '');
 		if (!newPassword) return fail(400, { message: 'invalid' });
 		await changePassword(locals.user.id, newPassword);
+		return { ok: true };
+	},
+	addMember: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { message: 'unauthorized' });
+		const form = await request.formData();
+		const email = String(form.get('email') ?? '').trim();
+		const name = String((form.get('name') ?? '').toString().trim() || email.split('@')[0] || '');
+		const password = String(form.get('password') ?? '');
+		const groupId = locals.groupId;
+		if (!email || !password || !Number.isFinite(groupId)) return fail(400, { message: 'invalid' });
+
+		// Create user if not exists
+		let u = await db
+			.select()
+			.from(user)
+			.where(eq(user.email, email))
+			.limit(1)
+			.then((r) => r[0]);
+		if (!u) {
+			u = await createUserWithPassword(name, email, password);
+		} else {
+			// ensure has password
+			if (!u.passwordHash) {
+				await changePassword(u.id, password);
+			}
+		}
+
+		// add membership if not present
+		const [m] = await db
+			.select()
+			.from(groupMember)
+			.where(and(eq(groupMember.groupId, groupId as number), eq(groupMember.userId, u.id)))
+			.limit(1);
+		if (!m) {
+			await db
+				.insert(groupMember)
+				.values({ groupId: groupId as number, userId: u.id })
+				.run();
+		}
 		return { ok: true };
 	}
 };

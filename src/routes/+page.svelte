@@ -17,6 +17,7 @@
 			users?: User[];
 		};
 	} = $props();
+
 	let showAdd = $state(false);
 	let formType: 'task' | 'treat' = $state('task');
 	let loginMsg = $state<string | null>(null);
@@ -47,35 +48,21 @@
 	const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 	const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
 
-	const tasksToday = (data.activeTasks ?? data.tasks ?? []).filter((t) => {
-		const ts = Number(t.scheduledAt ?? 0);
-		return ts >= startOfDay && ts <= endOfDay;
-	});
-	const tasksUpcoming = (data.activeTasks ?? data.tasks ?? []).filter((t) => {
-		const ts = Number(t.scheduledAt ?? 0);
-		return ts > endOfDay;
-	});
-	const tasksNoDate = (data.activeTasks ?? data.tasks ?? []).filter((t) => t.scheduledAt == null);
-
-	async function checkFormEmoji() {
-		const title = (document.querySelector('input[name="title"]') as HTMLInputElement)?.value;
-		if (!title) {
-			selectableEmojis = [];
-			return;
-		}
-		try {
-			const foundEmojis = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`).then((res) =>
-				res.json()
-			);
-			selectableEmojis = Array.isArray(foundEmojis)
-				? foundEmojis
-						.map((e: any) => (typeof e === 'string' ? e : e.emoji || e.character))
-						.filter((ch: any) => typeof ch === 'string' && ch.length > 0)
-				: [];
-		} catch {
-			selectableEmojis = [];
-		}
-	}
+	const tasksToday = $derived(
+		(data.activeTasks ?? data.tasks ?? []).filter((t) => {
+			const ts = Number(t.scheduledAt ?? 0);
+			return ts >= startOfDay && ts <= endOfDay;
+		})
+	);
+	const tasksUpcoming = $derived(
+		(data.activeTasks ?? data.tasks ?? []).filter((t) => {
+			const ts = Number(t.scheduledAt ?? 0);
+			return ts > endOfDay;
+		})
+	);
+	const tasksNoDate = $derived(
+		(data.activeTasks ?? data.tasks ?? []).filter((t) => t.scheduledAt == null)
+	);
 
 	function openComplete(t: Task) {
 		selectedTask = t;
@@ -290,6 +277,7 @@
 							const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
 							if (res.ok) {
 								editOpen = false;
+								showAdd = false;
 								// location.reload();
 								invalidateAll();
 							}
@@ -316,6 +304,7 @@
 								showAdd = false;
 								// location.reload();
 								invalidateAll();
+								console.log('task created');
 							} else {
 								addErr = 'Failed to create task';
 							}
