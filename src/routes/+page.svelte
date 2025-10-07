@@ -3,6 +3,7 @@
 	import type { Task, User } from '$lib/types';
 	import EmojiPicker from '$lib/components/emoji-picker.svelte';
 	import TaskDialog from '$lib/components/task-dialog.svelte';
+	import { invalidateAll } from '$app/navigation';
 
 	let {
 		data
@@ -327,10 +328,10 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ durationMinutes: Number(completeMinutes ?? 0) || 0 })
 				});
-				// if (res.ok) {
-				// 	completeOpen = false;
-				// 	location.reload();
-				// }
+				if (res.ok) {
+					completeOpen = false;
+					invalidateAll();
+				}
 				console.log(res, completeMinutes);
 			}}
 		>
