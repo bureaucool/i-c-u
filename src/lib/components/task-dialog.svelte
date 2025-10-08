@@ -10,7 +10,10 @@
 		extras = [],
 		onSave,
 		onCancel,
-		onDelete
+		onDelete,
+		onDuplicate,
+		mode = 'edit',
+		allowDelete = true
 	}: {
 		task: Task | null;
 		users: User[];
@@ -25,6 +28,9 @@
 		}) => Promise<void> | void;
 		onCancel: () => void;
 		onDelete?: () => Promise<void> | void;
+		onDuplicate?: () => Promise<void> | void;
+		mode?: 'edit' | 'create' | 'duplicate';
+		allowDelete?: boolean;
 	} = $props();
 
 	let title = $state(task?.title ?? '');
@@ -66,7 +72,11 @@
 </script>
 
 {#if task}
-	<p class="text-center text-3xl"><span class="opacity-30">Editing</span> {task.title}</p>
+	{#if mode === 'duplicate'}
+		<p class="text-center text-3xl"><span class="opacity-30">Duplicate</span> {task.title}</p>
+	{:else if mode === 'edit'}
+		<p class="text-center text-3xl"><span class="opacity-30">Editing</span> {task.title}</p>
+	{/if}
 {/if}
 <form onsubmit={submit} class="flex flex-col items-center gap-y-10">
 	<div class="flex flex-col items-center gap-y-5">
@@ -123,6 +133,7 @@
 			placeholder="Title"
 			required
 			bind:value={title}
+			disabled={mode === 'duplicate' && task != null}
 			onblur={async () => {
 				if (!task && title.trim().length > 0) {
 					const tempEmoji = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`);
@@ -156,7 +167,11 @@
 	</div>
 	<div class="flex w-full flex-col gap-y-0">
 		<span>Recurrence</span>
-		<select class="text-3xl" bind:value={recurrenceType}>
+		<select
+			class="text-3xl"
+			bind:value={recurrenceType}
+			disabled={mode === 'duplicate' && task != null}
+		>
 			<option value="">One-time</option>
 			<option value="daily">Daily</option>
 			<option value="weekly">Weekly</option>
@@ -168,22 +183,33 @@
 	</div>
 	<div class={recurrenceType.includes('every_x_') ? 'flex w-full flex-col gap-y-0' : 'hidden'}>
 		<span>Every</span>
-		<input class="text-3xl" type="number" min="1" placeholder="X" bind:value={recurrenceInterval} />
+		<input
+			class="text-3xl"
+			type="number"
+			min="1"
+			placeholder="X"
+			bind:value={recurrenceInterval}
+			disabled={mode === 'duplicate' && task != null}
+		/>
 	</div>
 
 	<div class="flex w-full flex-col gap-y-0">
 		<span>Assigned to</span>
-		<select class="text-3xl" bind:value={assignedUserId}>
-			<option value="">All</option>
+		<select
+			class="text-3xl"
+			bind:value={assignedUserId}
+			disabled={mode === 'duplicate' && task != null}
+		>
+			<option value="">Unassigned</option>
 			{#each users as u}
-				<option value={u.id}>{u.name}</option>
+				<option value={String(u.id)}>{u.name}</option>
 			{/each}
 		</select>
 	</div>
 	<div class="flex w-full flex-row justify-center gap-x-2">
 		<Button grey type="submit">Save</Button>
 		<Button onclick={onCancel}>Cancel</Button>
-		{#if task}
+		{#if task && allowDelete}
 			<Button
 				red
 				onclick={async () => {
@@ -192,6 +218,9 @@
 					}
 				}}>Delete</Button
 			>
+		{/if}
+		{#if task && onDuplicate && mode === 'edit'}
+			<Button grey onclick={() => onDuplicate?.()}>Duplicate</Button>
 		{/if}
 	</div>
 </form>

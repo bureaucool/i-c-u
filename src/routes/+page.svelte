@@ -46,6 +46,7 @@
 	// Overlays for complete/edit
 	let completeOpen = $state(false);
 	let editOpen = $state(false);
+	let completedOptionsOpen = $state(false);
 	let selectedTask: Task | null = $state(null);
 	let completeMinutes = $state<number | null>(null);
 	// Edit state (reuses add fields)
@@ -101,6 +102,12 @@
 		editRecurrenceInterval =
 			((t as any).recurrenceInterval ?? '') ? String((t as any).recurrenceInterval) : '';
 		editOpen = true;
+	}
+
+	function openCompletedOptions(t: Task) {
+		selectedTask = t;
+		completeMinutes = Number((t as any).durationMinutes ?? '') || null;
+		completedOptionsOpen = true;
 	}
 </script>
 
@@ -177,6 +184,8 @@
 					{#each tasksToday as t}
 						<li>
 							<TaskItem
+								users={data.users ?? []}
+								currentUserId={data.user?.id ?? -1}
 								task={t}
 								clickComplete={() => openComplete(t)}
 								clickEdit={() => openEdit(t)}
@@ -195,6 +204,8 @@
 					{#each tasksUpcoming as t}
 						<li>
 							<TaskItem
+								users={data.users ?? []}
+								currentUserId={data.user?.id ?? -1}
 								task={t}
 								clickComplete={() => openComplete(t)}
 								clickEdit={() => openEdit(t)}
@@ -214,6 +225,8 @@
 					{#each tasksNoDate as t}
 						<li>
 							<TaskItem
+								users={data.users ?? []}
+								currentUserId={data.user?.id ?? -1}
 								task={t}
 								clickComplete={() => openComplete(t)}
 								clickEdit={() => openEdit(t)}
@@ -232,7 +245,14 @@
 				<ul>
 					{#each data.completedTasks ?? [] as t}
 						<li>
-							<TaskItem completed task={t} clickComplete={() => {}} clickEdit={() => openEdit(t)} />
+							<TaskItem
+								completed
+								users={data.users ?? []}
+								currentUserId={data.user?.id ?? -1}
+								task={t}
+								clickComplete={() => {}}
+								clickEdit={() => openCompletedOptions(t)}
+							/>
 						</li>
 					{/each}
 				</ul>
@@ -288,6 +308,28 @@
 						extras={(data.tasks ?? [])
 							.map((t) => t.emoji)
 							.filter((e) => typeof e === 'string') as string[]}
+						mode={'edit' as any}
+						allowDelete={true}
+						onDuplicate={async () => {
+							if (!selectedTask) return;
+							const res = await fetch('/api/tasks', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									title: selectedTask.title,
+									emoji: selectedTask.emoji,
+									assignedUserId: selectedTask.assignedUserId,
+									scheduledAt: selectedTask.scheduledAt ?? null,
+									recurrenceType: (selectedTask as any).recurrenceType ?? null,
+									recurrenceInterval: (selectedTask as any).recurrenceInterval ?? null
+								})
+							});
+							if (res.ok) {
+								editOpen = false;
+								showAdd = false;
+								invalidateAll();
+							}
+						}}
 						onCancel={() => {
 							editOpen = false;
 							showAdd = false;
@@ -311,7 +353,6 @@
 							}
 							if (ok) {
 								editOpen = false;
-
 								invalidateAll();
 							}
 						}}
@@ -321,7 +362,6 @@
 							if (res.ok) {
 								editOpen = false;
 								showAdd = false;
-
 								invalidateAll();
 							}
 						}}
@@ -415,3 +455,79 @@
 		</form>
 	</div>
 {/if}
+
+{#if completedOptionsOpen && selectedTask}
+	<div class="fixed inset-0 z-50 flex items-center justify-center px-10">
+		<div class="absolute inset-0 bg-white/80"></div>
+		<button
+			aria-label="Close"
+			class="absolute inset-0 z-0 bg-black/50"
+			onclick={() => (completedOptionsOpen = false)}
+		></button>
+		<div
+			class="relative z-10 flex w-full max-w-md flex-col gap-y-4 rounded-xl bg-black/90 p-5 text-white"
+		>
+			<h3 class="text-xl">{selectedTask.title}</h3>
+			<div class="flex items-center gap-x-2">
+				<input
+					type="number"
+					min="0"
+					step="1"
+					placeholder="Minutes"
+					bind:value={completeMinutes}
+					class="text-white"
+				/>
+				<button
+					onclick={async () => {
+						if (!selectedTask) return;
+						const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+							method: 'PATCH',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ durationMinutes: Number(completeMinutes ?? 0) || 0 })
+						});
+						if (res.ok) {
+							completedOptionsOpen = false;
+							invalidateAll();
+						}
+					}}>Save duration</button
+				>
+			</div>
+			<div class="flex justify-between">
+				<button
+					onclick={async () => {
+						if (!selectedTask) return;
+						const res = await fetch('/api/tasks', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								title: selectedTask.title,
+								emoji: selectedTask.emoji,
+								assignedUserId: selectedTask.assignedUserId,
+								scheduledAt: selectedTask.scheduledAt ?? null,
+								recurrenceType: (selectedTask as any).recurrenceType ?? null,
+								recurrenceInterval: (selectedTask as any).recurrenceInterval ?? null
+							})
+						});
+						if (res.ok) {
+							completedOptionsOpen = false;
+							invalidateAll();
+						}
+					}}>Duplicate</button
+				>
+				<button
+					class="text-red-400"
+					onclick={async () => {
+						if (!selectedTask) return;
+						if (!confirm('Delete this task?')) return;
+						const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
+						if (res.ok) {
+							completedOptionsOpen = false;
+							invalidateAll();
+						}
+					}}>Delete</button
+				>
+			</div>
+		</div>
+	</div>
+{/if}
+ass

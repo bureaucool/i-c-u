@@ -18,7 +18,7 @@
 
 	const youTasks = (data.tasksDone ?? []).filter((t) => t.assignedUserId === yourId);
 	const othersTasks = (data.tasksDone ?? []).filter(
-		(t) => t.assignedUserId != null && t.assignedUserId !== yourId
+		(t) => t.assignedUserId == null || t.assignedUserId !== yourId
 	);
 
 	const isRecent = (t: Task) =>
@@ -89,7 +89,11 @@
 								<span class="flex-1">
 									{t.title}
 									<span class="opacity-60">({minutes(t)} min)</span>
-									<span class="ml-1 opacity-60">— {userById.get(t.assignedUserId!)?.name}</span>
+									<span class="ml-1 opacity-60"
+										>— {t.assignedUserId == null
+											? 'unassigned'
+											: userById.get(t.assignedUserId)?.name}</span
+									>
 								</span>
 								{#if isRecent(t)}<span class="text-amber-500">new</span>{/if}
 							</li>

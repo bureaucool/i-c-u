@@ -1,17 +1,23 @@
 <script lang="ts">
-	import type { Task } from '$lib/types';
+	import type { Task, User } from '$lib/types';
 
 	let {
 		task,
 		completed = false,
 		clickComplete,
-		clickEdit
+		clickEdit,
+		users = [] as User[],
+		currentUserId = -1
 	}: {
 		task: Task;
 		completed?: boolean;
 		clickComplete: () => void;
 		clickEdit: () => void;
+		users?: User[];
+		currentUserId?: number;
 	} = $props();
+
+	const userById = new Map(users.map((u) => [u.id, u] as const));
 </script>
 
 <div class="flex flex-row items-center gap-x-1">
@@ -35,8 +41,12 @@
 				{#if task.scheduledAt}
 					<span>{new Date(task.scheduledAt).toLocaleDateString()}</span>
 				{/if}
-				{#if task.assignedUserId}
-					<span>{task.assignedUserId}</span>
+				{#if task.assignedUserId != null}
+					<span
+						>{task.assignedUserId === currentUserId
+							? 'you'
+							: (userById.get(task.assignedUserId)?.name ?? 'unknown')}</span
+					>
 				{/if}
 			</div>
 		</div>
