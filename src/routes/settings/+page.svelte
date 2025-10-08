@@ -194,7 +194,7 @@
 		>
 			<input type="hidden" name="userId" value={data.user?.id} />
 			<input
-				class="text-3xl"
+				class="w-full text-3xl"
 				name="availableTimeMinutesPerWeek"
 				type="number"
 				placeholder={(data.user as any)?.availableTimeMinutesPerWeek ?? 600}
@@ -222,7 +222,7 @@
 			}}
 		>
 			<input
-				class="text-3xl"
+				class="w-full text-3xl"
 				name="newPassword"
 				type="password"
 				placeholder="New password"
