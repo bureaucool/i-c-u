@@ -10,6 +10,8 @@
 	import { expoOut, sineInOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
 
+	import Portal from 'svelte-portal';
+
 	let {
 		data
 	}: {
@@ -271,46 +273,265 @@
 	</div>
 {/if}
 
-{#if showAdd}
-	<div class="fixed inset-0 z-50 flex items-center justify-center px-10">
-		<div
-			class="absolute inset-0 bg-white/80"
-			transition:fade|global={{ duration: 100, easing: sineInOut }}
-		></div>
-		<button
-			aria-label="Close"
-			class="absolute inset-0 z-0 bg-black/50"
-			onclick={() => (showAdd = false)}
-		></button>
-		<div
-			class="relative z-10 flex flex-col gap-y-10 rounded-xl bg-black/90 p-5 text-white"
-			in:fly={{ duration: 500, easing: expoOut, y: 200 }}
-			out:fade={{ duration: 100, easing: sineInOut }}
-		>
-			{#if !editOpen}
-				<div class="flex flex-row justify-center gap-x-4 text-3xl">
-					<button
-						class="{formType !== 'task' ? 'opacity-50' : ''} cursor-pointer md:hover:scale-110"
-						onclick={() => (formType = 'task')}>🔨 Task</button
-					>
-					<button
-						class="{formType !== 'treat' ? 'opacity-50' : ''} cursor-pointer md:hover:scale-110"
-						onclick={() => (formType = 'treat')}>♥️ Treat</button
-					>
-				</div>
-			{/if}
+<Portal target="body">
+	{#if showAdd}
+		<div class="fixed inset-0 z-50 flex items-center justify-center px-5 md:px-10">
+			<div
+				class="absolute inset-0 bg-white/80"
+				transition:fade|global={{ duration: 100, easing: sineInOut }}
+			></div>
+			<button
+				aria-label="Close"
+				class="absolute inset-0 z-20 bg-black/50"
+				onclick={() => (showAdd = false)}
+			></button>
+			<div
+				class="relative z-30 flex w-full flex-col gap-y-10 rounded-xl bg-black/90 p-5 text-white"
+				in:fly={{ duration: 500, easing: expoOut, y: 200 }}
+				out:fade={{ duration: 100, easing: sineInOut }}
+			>
+				{#if !editOpen}
+					<div class="flex flex-row justify-center gap-x-4 text-3xl">
+						<button
+							class="{formType !== 'task' ? 'opacity-50' : ''} cursor-pointer md:hover:scale-110"
+							onclick={() => (formType = 'task')}>🔨 Task</button
+						>
+						<button
+							class="{formType !== 'treat' ? 'opacity-50' : ''} cursor-pointer md:hover:scale-110"
+							onclick={() => (formType = 'treat')}>♥️ Treat</button
+						>
+					</div>
+				{/if}
 
-			{#if formType === 'task'}
-				{#if editOpen}
-					<TaskDialog
-						task={selectedTask}
+				{#if formType === 'task'}
+					{#if editOpen}
+						<TaskDialog
+							task={selectedTask}
+							users={data.users ?? []}
+							extras={(data.tasks ?? [])
+								.map((t) => t.emoji)
+								.filter((e) => typeof e === 'string') as string[]}
+							mode={'edit' as any}
+							allowDelete={true}
+							onDuplicate={async () => {
+								if (!selectedTask) return;
+								const res = await fetch('/api/tasks', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({
+										title: selectedTask.title,
+										emoji: selectedTask.emoji,
+										assignedUserId: selectedTask.assignedUserId,
+										scheduledAt: selectedTask.scheduledAt ?? null,
+										recurrenceType: (selectedTask as any).recurrenceType ?? null,
+										recurrenceInterval: (selectedTask as any).recurrenceInterval ?? null
+									})
+								});
+								if (res.ok) {
+									editOpen = false;
+									showAdd = false;
+									invalidateAll();
+								}
+							}}
+							onCancel={() => {
+								editOpen = false;
+								showAdd = false;
+							}}
+							onSave={async (payload) => {
+								let ok = false;
+								if (selectedTask) {
+									const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+										method: 'PATCH',
+										headers: { 'Content-Type': 'application/json' },
+										body: JSON.stringify(payload)
+									});
+									ok = res.ok;
+								} else {
+									const res = await fetch('/api/tasks', {
+										method: 'POST',
+										headers: { 'Content-Type': 'application/json' },
+										body: JSON.stringify(payload)
+									});
+									ok = res.ok;
+								}
+								if (ok) {
+									editOpen = false;
+									invalidateAll();
+								}
+							}}
+							onDelete={async () => {
+								if (!selectedTask) return;
+								const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
+								if (res.ok) {
+									editOpen = false;
+									showAdd = false;
+									invalidateAll();
+								}
+							}}
+						/>
+					{:else}
+						<TaskDialog
+							task={null}
+							users={data.users ?? []}
+							extras={(data.tasks ?? [])
+								.map((t) => t.emoji)
+								.filter((e) => typeof e === 'string') as string[]}
+							onCancel={() => {
+								showAdd = false;
+							}}
+							onSave={async (payload) => {
+								addMsg = addErr = null;
+								const res = await fetch('/api/tasks', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify(payload)
+								});
+								if (res.ok) {
+									showAdd = false;
+
+									invalidateAll();
+								} else {
+									addErr = 'Failed to create task';
+								}
+							}}
+						/>
+					{/if}
+				{:else}
+					<TreatDialog
 						users={data.users ?? []}
-						extras={(data.tasks ?? [])
-							.map((t) => t.emoji)
-							.filter((e) => typeof e === 'string') as string[]}
-						mode={'edit' as any}
-						allowDelete={true}
-						onDuplicate={async () => {
+						currentUserId={data.user?.id}
+						onCancel={() => {
+							showAdd = false;
+						}}
+						onSave={async (payload) => {
+							addMsg = addErr = null;
+							const res = await fetch('/api/treats', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify(payload)
+							});
+							if (res.ok) {
+								addMsg = 'Treat created';
+								showAdd = false;
+
+								invalidateAll();
+							} else {
+								const err = await res.json().catch(() => ({}));
+								addErr = err?.error || err?.message || 'Failed to create treat';
+							}
+						}}
+					/>
+				{/if}
+
+				{#if addMsg}<p>{addMsg}</p>{/if}
+				{#if addErr}<p>{addErr}</p>{/if}
+			</div>
+		</div>
+	{/if}
+
+	{#if completeOpen && selectedTask}
+		<div class="fixed inset-0 z-50 flex items-center justify-center px-10">
+			<button
+				transition:fade={{ duration: 100, easing: sineInOut }}
+				aria-label="Close"
+				class="absolute inset-0 bg-white/80"
+				onclick={() => (completeOpen = false)}
+			></button>
+			<div
+				class="relative z-10 flex flex-col gap-y-5 rounded-full bg-black/90 p-10 text-white"
+				in:fly={{ duration: 500, easing: expoOut, y: 200 }}
+				out:fade={{ duration: 100, easing: sineInOut }}
+			>
+				<h3 class="text-center text-3xl">
+					<span class="inline-block pr-1">{selectedTask.emoji}</span>{selectedTask.title}
+					<span class="inline-block pr-1 opacity-50">done</span>!
+				</h3>
+
+				<form
+					class="flex flex-col gap-y-5"
+					onsubmit={async (e) => {
+						e.preventDefault();
+						if (selectedTask == null) return;
+						const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+							method: 'PATCH',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								durationMinutes: Number(completeMinutes ?? 0) || 0,
+								userId: data.user?.id
+							})
+						});
+						if (res.ok) {
+							completeOpen = false;
+
+							invalidateAll();
+						}
+					}}
+				>
+					<input
+						class="w-full text-3xl"
+						type="number"
+						min="0"
+						step="1"
+						placeholder="Minutes"
+						bind:value={completeMinutes}
+					/>
+					<div class="flex flex-row justify-center gap-x-2">
+						<Button grey type="submit">Save</Button>
+						<Button onclick={() => (completeOpen = false)}>Cancel</Button>
+					</div>
+				</form>
+			</div>
+		</div>
+	{/if}
+
+	{#if completedOptionsOpen && selectedTask}
+		<div class="fixed inset-0 z-50 flex items-center justify-center px-10">
+			<div class="absolute inset-0 bg-white/80"></div>
+			<button
+				aria-label="Close"
+				class="absolute inset-0 z-0 bg-black/50"
+				onclick={() => (completedOptionsOpen = false)}
+			></button>
+			<div
+				class="relative z-10 flex w-full max-w-md flex-col gap-y-10 rounded-full bg-black/90 p-10 text-white"
+				in:fly={{ duration: 500, easing: expoOut, y: 200 }}
+				out:fade={{ duration: 100, easing: sineInOut }}
+			>
+				<h3 class="flex flex-row justify-center gap-x-2 text-3xl">
+					<span>{selectedTask.emoji}</span><span>{selectedTask.title}</span>
+				</h3>
+				<div class="flex flex-col gap-y-0">
+					<span>Duration</span>
+					<div class="flex items-center justify-center gap-x-2">
+						<input
+							class="w-full text-3xl text-white"
+							type="number"
+							min="0"
+							step="1"
+							placeholder="Minutes"
+							bind:value={completeMinutes}
+						/>
+						<Button
+							big={false}
+							grey
+							onclick={async () => {
+								if (!selectedTask) return;
+								const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+									method: 'PATCH',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({ durationMinutes: Number(completeMinutes ?? 0) || 0 })
+								});
+								if (res.ok) {
+									completedOptionsOpen = false;
+									invalidateAll();
+								}
+							}}>Save</Button
+						>
+					</div>
+				</div>
+				<div class="flex flex-row justify-center gap-x-1">
+					<Button
+						onclick={async () => {
 							if (!selectedTask) return;
 							const res = await fetch('/api/tasks', {
 								method: 'POST',
@@ -325,241 +546,25 @@
 								})
 							});
 							if (res.ok) {
-								editOpen = false;
-								showAdd = false;
+								completedOptionsOpen = false;
 								invalidateAll();
 							}
-						}}
-						onCancel={() => {
-							editOpen = false;
-							showAdd = false;
-						}}
-						onSave={async (payload) => {
-							let ok = false;
-							if (selectedTask) {
-								const res = await fetch(`/api/tasks/${selectedTask.id}`, {
-									method: 'PATCH',
-									headers: { 'Content-Type': 'application/json' },
-									body: JSON.stringify(payload)
-								});
-								ok = res.ok;
-							} else {
-								const res = await fetch('/api/tasks', {
-									method: 'POST',
-									headers: { 'Content-Type': 'application/json' },
-									body: JSON.stringify(payload)
-								});
-								ok = res.ok;
-							}
-							if (ok) {
-								editOpen = false;
-								invalidateAll();
-							}
-						}}
-						onDelete={async () => {
-							if (!selectedTask) return;
-							const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
-							if (res.ok) {
-								editOpen = false;
-								showAdd = false;
-								invalidateAll();
-							}
-						}}
-					/>
-				{:else}
-					<TaskDialog
-						task={null}
-						users={data.users ?? []}
-						extras={(data.tasks ?? [])
-							.map((t) => t.emoji)
-							.filter((e) => typeof e === 'string') as string[]}
-						onCancel={() => {
-							showAdd = false;
-						}}
-						onSave={async (payload) => {
-							addMsg = addErr = null;
-							const res = await fetch('/api/tasks', {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify(payload)
-							});
-							if (res.ok) {
-								showAdd = false;
-
-								invalidateAll();
-							} else {
-								addErr = 'Failed to create task';
-							}
-						}}
-					/>
-				{/if}
-			{:else}
-				<TreatDialog
-					users={data.users ?? []}
-					currentUserId={data.user?.id}
-					onCancel={() => {
-						showAdd = false;
-					}}
-					onSave={async (payload) => {
-						addMsg = addErr = null;
-						const res = await fetch('/api/treats', {
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify(payload)
-						});
-						if (res.ok) {
-							addMsg = 'Treat created';
-							showAdd = false;
-
-							invalidateAll();
-						} else {
-							const err = await res.json().catch(() => ({}));
-							addErr = err?.error || err?.message || 'Failed to create treat';
-						}
-					}}
-				/>
-			{/if}
-
-			{#if addMsg}<p>{addMsg}</p>{/if}
-			{#if addErr}<p>{addErr}</p>{/if}
-		</div>
-	</div>
-{/if}
-
-{#if completeOpen && selectedTask}
-	<div class="fixed inset-0 z-50 flex items-center justify-center px-10">
-		<button
-			transition:fade={{ duration: 100, easing: sineInOut }}
-			aria-label="Close"
-			class="absolute inset-0 bg-white/80"
-			onclick={() => (completeOpen = false)}
-		></button>
-		<div
-			class="relative z-10 flex flex-col gap-y-10 rounded-full bg-black/90 p-10 text-white"
-			in:fly={{ duration: 500, easing: expoOut, y: 200 }}
-			out:fade={{ duration: 100, easing: sineInOut }}
-		>
-			<h3 class="text-center text-3xl">
-				{selectedTask.title} <span class="opacity-50">completed</span>!
-			</h3>
-
-			<form
-				class="flex flex-col gap-y-4"
-				onsubmit={async (e) => {
-					e.preventDefault();
-					if (selectedTask == null) return;
-					const res = await fetch(`/api/tasks/${selectedTask.id}`, {
-						method: 'PATCH',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							durationMinutes: Number(completeMinutes ?? 0) || 0,
-							userId: data.user?.id
-						})
-					});
-					if (res.ok) {
-						completeOpen = false;
-
-						invalidateAll();
-					}
-				}}
-			>
-				<input
-					class="text-3xl"
-					type="number"
-					min="0"
-					step="1"
-					placeholder="Minutes"
-					bind:value={completeMinutes}
-				/>
-				<div class="flex flex-row justify-center gap-x-2">
-					<Button grey type="submit">Save</Button>
-					<Button onclick={() => (completeOpen = false)}>Cancel</Button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
-
-{#if completedOptionsOpen && selectedTask}
-	<div class="fixed inset-0 z-50 flex items-center justify-center px-10">
-		<div class="absolute inset-0 bg-white/80"></div>
-		<button
-			aria-label="Close"
-			class="absolute inset-0 z-0 bg-black/50"
-			onclick={() => (completedOptionsOpen = false)}
-		></button>
-		<div
-			class="relative z-10 flex w-full max-w-md flex-col gap-y-10 rounded-full bg-black/90 p-10 text-white"
-			in:fly={{ duration: 500, easing: expoOut, y: 200 }}
-			out:fade={{ duration: 100, easing: sineInOut }}
-		>
-			<h3 class="flex flex-row justify-center gap-x-2 text-3xl">
-				<span>{selectedTask.emoji}</span><span>{selectedTask.title}</span>
-			</h3>
-			<div class="flex flex-col gap-y-0">
-				<span>Duration</span>
-				<div class="flex items-center justify-center gap-x-2">
-					<input
-						class="w-full text-3xl text-white"
-						type="number"
-						min="0"
-						step="1"
-						placeholder="Minutes"
-						bind:value={completeMinutes}
-					/>
+						}}>Duplicate</Button
+					>
 					<Button
-						big={false}
-						grey
+						red
 						onclick={async () => {
 							if (!selectedTask) return;
-							const res = await fetch(`/api/tasks/${selectedTask.id}`, {
-								method: 'PATCH',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify({ durationMinutes: Number(completeMinutes ?? 0) || 0 })
-							});
+							if (!confirm('Delete this task?')) return;
+							const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
 							if (res.ok) {
 								completedOptionsOpen = false;
 								invalidateAll();
 							}
-						}}>Save</Button
+						}}>Delete</Button
 					>
 				</div>
 			</div>
-			<div class="flex flex-row justify-center gap-x-1">
-				<Button
-					onclick={async () => {
-						if (!selectedTask) return;
-						const res = await fetch('/api/tasks', {
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({
-								title: selectedTask.title,
-								emoji: selectedTask.emoji,
-								assignedUserId: selectedTask.assignedUserId,
-								scheduledAt: selectedTask.scheduledAt ?? null,
-								recurrenceType: (selectedTask as any).recurrenceType ?? null,
-								recurrenceInterval: (selectedTask as any).recurrenceInterval ?? null
-							})
-						});
-						if (res.ok) {
-							completedOptionsOpen = false;
-							invalidateAll();
-						}
-					}}>Duplicate</Button
-				>
-				<Button
-					red
-					onclick={async () => {
-						if (!selectedTask) return;
-						if (!confirm('Delete this task?')) return;
-						const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
-						if (res.ok) {
-							completedOptionsOpen = false;
-							invalidateAll();
-						}
-					}}>Delete</Button
-				>
-			</div>
 		</div>
-	</div>
-{/if}
+	{/if}
+</Portal>

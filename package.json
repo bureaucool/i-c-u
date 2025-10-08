@@ -48,6 +48,7 @@
 		]
 	},
 	"dependencies": {
-		"bcryptjs": "^3.0.2"
+		"bcryptjs": "^3.0.2",
+		"svelte-portal": "^2.2.1"
 	}
 }

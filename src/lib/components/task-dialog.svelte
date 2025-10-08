@@ -129,7 +129,7 @@
 	<div class="flex flex-col gap-y-0">
 		<span>Title</span>
 		<input
-			class="text-3xl"
+			class="w-full text-3xl"
 			placeholder="Title"
 			required
 			bind:value={title}
@@ -206,7 +206,7 @@
 			{/each}
 		</select>
 	</div>
-	<div class="flex w-full flex-row justify-center gap-x-2">
+	<div class="flex w-full flex-row flex-wrap justify-center gap-2">
 		<Button grey type="submit">Save</Button>
 		<Button onclick={onCancel}>Cancel</Button>
 		{#if task && allowDelete}
