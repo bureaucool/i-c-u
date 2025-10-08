@@ -39,6 +39,12 @@
 		</div>
 	{/if}
 {/if}
-<div class="mx-auto max-w-xl px-10 py-32">
-	{@render children?.()}
+<div class="relative z-10 mx-auto max-w-xl px-10 py-32">
+	<div class="absolute inset-0 rounded-full bg-white blur-3xl"></div>
+	<div class="relative z-10">
+		{@render children?.()}
+	</div>
 </div>
+
+<div class="rainbow-bg fixed inset-0"></div>
+bg

@@ -10,3 +10,33 @@
     font-family: "neue-haas-grotesk-display", sans-serif;
     font-weight: 600;
     font-style: normal; */
+
+/* Animated rainbow background utility */
+.rainbow-bg {
+	background: linear-gradient(
+		-45deg,
+		#ff0040,
+		#ff7a00,
+		#ffd300,
+		#3ddc97,
+		#00aaff,
+		#6a00ff,
+		#c400ff,
+		#ff0040
+	);
+	background-size: 400% 400%;
+	animation: rainbow-shift 18s linear infinite;
+	will-change: background-position;
+}
+
+@keyframes rainbow-shift {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
