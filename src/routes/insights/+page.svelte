@@ -126,8 +126,8 @@
 	];
 </script>
 
-<div class="relative z-20 flex flex-col gap-y-10 px-10 py-32 text-center">
-	<p class="text-center text-3xl">Don't compare, appreciate!<br />😚</p>
+<div class="relative z-20 flex flex-col gap-y-10 text-center">
+	<p class="text-center text-3xl leading-tight">Don't compare, appreciate!<br />😚</p>
 
 	<form
 		class="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-3 text-left"
@@ -181,16 +181,21 @@
 				<ul class="mt-2 flex flex-col gap-y-2 text-left">
 					{#each youItems as item}
 						<li class="flex items-center gap-x-3">
-							<span class="select-none" style={`font-size:${itemSize(item.minutes)};line-height:1;`}
-								>{item.emoji}</span
+							<span
+								class="relative select-none"
+								style={`font-size:${itemSize(item.minutes)};line-height:1;`}
+								>{item.emoji}
+								{#if item.isNew}
+									<span
+										class="absolute -top-3 -left-3 rounded bg-amber-100/90 px-2 py-0.5 text-xs text-amber-500"
+										>new</span
+									>
+								{/if}</span
 							>
 							<span class="flex flex-1 flex-col leading-tight">
 								<span>{item.title}</span>
 								<span class="opacity-60">({item.minutes} min)</span>
 							</span>
-							{#if item.isNew}
-								<span class="rounded bg-amber-100/50 px-2 py-0.5 text-xs text-amber-500">new</span>
-							{/if}
 						</li>
 					{/each}
 				</ul>
@@ -204,16 +209,21 @@
 				<ul class="mt-2 flex flex-col gap-y-2 text-left">
 					{#each othersItems as item}
 						<li class="flex items-center gap-x-3">
-							<span class="select-none" style={`font-size:${itemSize(item.minutes)};line-height:1;`}
-								>{item.emoji}</span
-							>
+							<span
+								class="relative select-none"
+								style={`font-size:${itemSize(item.minutes)};line-height:1;`}
+								>{item.emoji}
+								{#if item.isNew}
+									<span
+										class="absolute -top-3 -left-3 rounded bg-amber-100/90 px-2 py-0.5 text-xs text-amber-500"
+										>new</span
+									>
+								{/if}
+							</span>
 							<span class="flex flex-col leading-tight">
 								<span>{item.title}</span>
 								<span class="opacity-60">({item.minutes} min)</span>
 							</span>
-							{#if item.isNew}
-								<span class="rounded bg-amber-100/50 px-2 py-0.5 text-xs text-amber-500">new</span>
-							{/if}
 						</li>
 					{/each}
 				</ul>
