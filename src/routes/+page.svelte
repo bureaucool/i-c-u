@@ -15,6 +15,7 @@
 			activeTasks?: Task[];
 			completedTasks?: Task[];
 			users?: User[];
+			pendingTreats?: import('$lib/types').Treat[];
 		};
 	} = $props();
 
@@ -24,6 +25,10 @@
 	let loginErr = $state<string | null>(null);
 	let addMsg = $state<string | null>(null);
 	let addErr = $state<string | null>(null);
+	// Floating treat accept flow state
+	let acceptingTreatId: number | null = $state(null);
+	let acceptMinutes: number | null = $state(null);
+	let acceptFeedback: string = $state('');
 
 	let title = $state<string | null>(null);
 	let emoji = $state<string | null>('');
@@ -133,6 +138,86 @@
 	</section>
 {:else}
 	<section class="flex flex-col gap-y-10">
+		{#if (data.pendingTreats ?? []).length > 0}
+			<div
+				class="pointer-events-auto fixed inset-x-3 top-3 z-40 flex flex-col items-center gap-y-3"
+			>
+				{#each data.pendingTreats ?? [] as tr}
+					<div class="rounded-xl bg-pink-100 p-4 shadow-xl">
+						<div class="flex items-center gap-x-3">
+							<div class="text-2xl">{(tr as any).emoji ?? '♥️'}</div>
+							<div class="flex flex-col">
+								<div class="text-lg">{(tr as any).title}</div>
+								<div class="text-sm opacity-70">Value: {tr.valueMinutes} min</div>
+							</div>
+						</div>
+						{#if acceptingTreatId === tr.id}
+							<form
+								class="mt-3 flex flex-col gap-y-2"
+								onsubmit={async (e) => {
+									e.preventDefault();
+									const res = await fetch(`/api/treats/${tr.id}`, {
+										method: 'PATCH',
+										headers: { 'Content-Type': 'application/json' },
+										body: JSON.stringify({
+											accepted: true,
+											valueMinutes: Number(acceptMinutes ?? tr.valueMinutes),
+											feedbackNote: acceptFeedback || undefined
+										})
+									});
+									if (res.ok) {
+										acceptingTreatId = null;
+										acceptMinutes = null;
+										acceptFeedback = '';
+
+										invalidateAll();
+									}
+								}}
+							>
+								<label class="text-sm">Confirm minutes</label>
+								<input
+									type="number"
+									min="0"
+									step="1"
+									bind:value={acceptMinutes}
+									placeholder={String(tr.valueMinutes)}
+								/>
+								<input type="text" placeholder="Optional feedback" bind:value={acceptFeedback} />
+								<div class="flex gap-x-2">
+									<button type="submit">Accept</button>
+									<button
+										type="button"
+										onclick={() => {
+											acceptingTreatId = null;
+										}}>Cancel</button
+									>
+								</div>
+							</form>
+						{:else}
+							<div class="mt-3 flex gap-x-2">
+								<button
+									onclick={() => {
+										acceptingTreatId = tr.id;
+										acceptMinutes = tr.valueMinutes;
+									}}>Accept</button
+								>
+								<button
+									onclick={async () => {
+										await fetch(`/api/treats/${tr.id}`, {
+											method: 'PATCH',
+											headers: { 'Content-Type': 'application/json' },
+											body: JSON.stringify({ accepted: false, declined: true })
+										});
+
+										invalidateAll();
+									}}>Dismiss</button
+								>
+							</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{/if}
 		<section>
 			<h2>Today</h2>
 			{#if tasksToday.length === 0}
@@ -313,6 +398,7 @@
 			{:else}
 				<TreatDialog
 					users={data.users ?? []}
+					currentUserId={data.user?.id}
 					onCancel={() => {
 						showAdd = false;
 					}}

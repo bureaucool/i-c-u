@@ -84,7 +84,10 @@ export const treat = sqliteTable('treat', {
 		.references(() => user.id, { onDelete: 'cascade' }),
 	accepted: integer('accepted', { mode: 'boolean' }).notNull().default(false),
 	valueMinutes: integer('value_minutes').notNull().default(0),
-	createdAt: integer('created_at').notNull()
+	createdAt: integer('created_at').notNull(),
+	acceptedAt: integer('accepted_at'),
+	declinedAt: integer('declined_at'),
+	feedbackNote: text('feedback_note')
 });
 
 export const session = sqliteTable('session', {

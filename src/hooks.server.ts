@@ -1,6 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { session, user } from '$lib/server/db/schema';
+import { session, user, groupMember } from '$lib/server/db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -15,9 +15,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	// choose group from cookie if set
+	// choose group from cookie if set, otherwise default to first membership
 	const gid = event.cookies.get('gid');
-	if (gid && /^\d+$/.test(gid)) currentGroupId = Number(gid);
+	if (gid && /^\d+$/.test(gid)) {
+		currentGroupId = Number(gid);
+	} else if (currentUser) {
+		const memberships = await db
+			.select()
+			.from(groupMember)
+			.where(eq(groupMember.userId, currentUser.id));
+		if (memberships.length > 0) {
+			currentGroupId = memberships[0].groupId;
+			// persist cookie so subsequent requests are consistent
+			event.cookies.set('gid', String(currentGroupId), { path: '/', sameSite: 'lax' });
+		}
+	}
 
 	event.locals.user = currentUser;
 	event.locals.groupId = currentGroupId;

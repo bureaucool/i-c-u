@@ -43,13 +43,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const [tu] = await db.select().from(user).where(eq(user.id, toUserId)).limit(1);
 	if (!tu) throw error(404, 'to user not found');
 
-	// ensure both users are in the group
+	// ensure creator is in the group
 	const [fm] = await db
 		.select()
 		.from(groupMember)
 		.where(and(eq(groupMember.groupId, groupId), eq(groupMember.userId, fromUserId)))
 		.limit(1);
 	if (!fm) throw error(400, 'from user not in group');
+	// ensure recipient is in the group as well
 	const [tm] = await db
 		.select()
 		.from(groupMember)

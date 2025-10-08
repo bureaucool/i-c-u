@@ -4,10 +4,12 @@
 
 	let {
 		users,
+		currentUserId,
 		onSave,
 		onCancel
 	}: {
 		users: User[];
+		currentUserId?: number;
 		onSave: (payload: {
 			title: string;
 			toUserId: string;
@@ -36,7 +38,7 @@
 		<span>For</span>
 		<select class="text-3xl" name="toUserId" required bind:value={toUserId}>
 			<option value="" disabled selected>Select</option>
-			{#each users as u}
+			{#each users.filter((u) => u.id !== (currentUserId ?? -1)) as u}
 				<option value={u.id}>{u.name}</option>
 			{/each}
 		</select>

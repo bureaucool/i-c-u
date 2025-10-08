@@ -146,7 +146,7 @@
 							e.preventDefault();
 							memberMsg = memberErr = null;
 							const form = new FormData(e.currentTarget as HTMLFormElement);
-							const res = await fetch('?/editMembers', { method: 'POST', body: form });
+							const res = await fetch('?/addMember', { method: 'POST', body: form });
 							if (res.ok) {
 								memberMsg = 'Member added';
 								await invalidateAll();
