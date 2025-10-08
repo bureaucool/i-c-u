@@ -211,28 +211,28 @@
 				editOpen = false;
 				selectedTask = null;
 				showAdd = true;
-			}}>Add</Button
+			}}>+</Button
 		>
 	</div>
 {/if}
 
 {#if showAdd}
-	<div class="fixed inset-0 z-20 flex items-center justify-center bg-white/80 px-10">
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-white/80 px-10">
 		<button
 			aria-label="Close"
 			class="absolute inset-0 z-0 bg-black/50"
 			onclick={() => (showAdd = false)}
 		></button>
-		<div class="relative z-10 flex flex-col gap-y-10 rounded-md bg-black/50 p-5 text-white">
+		<div class="relative z-10 flex flex-col gap-y-10 rounded-xl bg-black/90 p-5 text-white">
 			{#if !editOpen}
-				<div class="flex flex-row justify-center gap-x-5">
+				<div class="flex flex-row justify-center gap-x-4 text-3xl">
 					<button
 						class={formType !== 'task' ? 'opacity-50' : ''}
-						onclick={() => (formType = 'task')}>Task</button
+						onclick={() => (formType = 'task')}>🔨 Task</button
 					>
 					<button
 						class={formType !== 'treat' ? 'opacity-50' : ''}
-						onclick={() => (formType = 'treat')}>Treat</button
+						onclick={() => (formType = 'treat')}>♥️ Treat</button
 					>
 				</div>
 			{/if}
@@ -268,7 +268,7 @@
 							}
 							if (ok) {
 								editOpen = false;
-								// location.reload();
+
 								invalidateAll();
 							}
 						}}
@@ -278,7 +278,7 @@
 							if (res.ok) {
 								editOpen = false;
 								showAdd = false;
-								// location.reload();
+
 								invalidateAll();
 							}
 						}}
@@ -302,9 +302,8 @@
 							});
 							if (res.ok) {
 								showAdd = false;
-								// location.reload();
+
 								invalidateAll();
-								console.log('task created');
 							} else {
 								addErr = 'Failed to create task';
 							}
@@ -327,6 +326,7 @@
 						if (res.ok) {
 							addMsg = 'Treat created';
 							showAdd = false;
+
 							invalidateAll();
 						} else {
 							const err = await res.json().catch(() => ({}));
@@ -360,6 +360,7 @@
 				});
 				if (res.ok) {
 					completeOpen = false;
+
 					invalidateAll();
 				}
 			}}

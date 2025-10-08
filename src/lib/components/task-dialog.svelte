@@ -2,6 +2,7 @@
 	import EmojiPicker from '$lib/components/emoji-picker.svelte';
 
 	import type { Task, User } from '$lib/types';
+	import Button from './button.svelte';
 
 	let {
 		task,
@@ -65,24 +66,10 @@
 </script>
 
 {#if task}
-	<p>Editing task #{task.id}</p>
+	<p class="text-center text-3xl"><span class="opacity-30">Editing</span> {task.title}</p>
 {/if}
 <form onsubmit={submit}>
-	<input
-		placeholder="Title"
-		required
-		bind:value={title}
-		onblur={async () => {
-			if (!task && title.trim().length > 0) {
-				const tempEmoji = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`);
-				if (tempEmoji.ok) {
-					const tempEmojiData = await tempEmoji.json();
-					foundEmojis = tempEmojiData;
-				}
-			}
-		}}
-	/>
-	<div>
+	<div class="flex flex-col gap-y-2">
 		<input name="emoji" type={!emoji ? 'hidden' : 'text'} value={emoji ?? ''} />
 		{#if foundEmojis.length > 0}
 			<div>
@@ -96,8 +83,13 @@
 				{/each}
 			</div>
 		{/if}
-		{#if !showPicker}<button type="button" onclick={() => (showPicker = true)}>browse</button>{/if}
-		{#if showPicker}<button type="button" onclick={() => (showPicker = false)}>hide</button>{/if}
+		{#if !showPicker}
+			<div class="flex flex-row justify-center gap-x-1">
+				<Button grey big={false} onclick={() => (showPicker = true)}>Browse</Button>
+				<Button grey big={false} onclick={() => (emoji = '')}>Clear</Button>
+			</div>
+		{/if}
+		{#if showPicker}<Button grey big={false} onclick={() => (showPicker = false)}>hide</Button>{/if}
 		{#if showPicker}
 			<EmojiPicker
 				onPick={(e) => {
@@ -111,6 +103,25 @@
 			/>
 		{/if}
 	</div>
+	<div class="flex flex-col gap-y-0">
+		<span>Title</span>
+		<input
+			class="text-3xl"
+			placeholder="Title"
+			required
+			bind:value={title}
+			onblur={async () => {
+				if (!task && title.trim().length > 0) {
+					const tempEmoji = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`);
+					if (tempEmoji.ok) {
+						const tempEmojiData = await tempEmoji.json();
+						foundEmojis = tempEmojiData;
+					}
+				}
+			}}
+		/>
+	</div>
+
 	<div>
 		<input type="date" bind:value={date} />
 		{#if date}

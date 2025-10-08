@@ -238,7 +238,7 @@
 
 	{#if data.groups?.length && data.groups.length > 1}
 		<section>
-			<h3>Active Group</h3>
+			<h3>Active Groups</h3>
 			<form
 				onsubmit={async (e) => {
 					e.preventDefault();
