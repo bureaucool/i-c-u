@@ -27,9 +27,12 @@
 	const isRecent = (t: Task) =>
 		Number((t as any).completedAt ?? 0) >= Number(data.recentSince ?? 0);
 	const minutes = (t: Task) => Number((t as any).durationMinutes ?? 0) || 0;
+	const MIN_EMOJI_REM = 0.875; // 14px
+	const MAX_EMOJI_REM = 4; // 96px
+	const REMS_PER_MINUTE = 0.125; // 2px per minute -> 0.125rem
 	const itemSize = (m: number) => {
-		const clamped = Math.max(14, Math.min(96, m * 2));
-		return `${clamped}px`;
+		const sizeRem = Math.max(MIN_EMOJI_REM, Math.min(MAX_EMOJI_REM, m * REMS_PER_MINUTE));
+		return `${sizeRem}rem`;
 	};
 
 	// Range selector helpers
