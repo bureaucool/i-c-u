@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 
-	import Logo from '$lib/components/logo.svelte';
+	import Logo from '$lib/components/logo_canvas.svelte';
 	import { page } from '$app/state';
 	import { fade } from 'svelte/transition';
 	import { percentages, rangeDays } from '$lib/stores/states';
