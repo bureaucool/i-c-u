@@ -24,12 +24,7 @@
 	const isRecent = (t: Task) =>
 		Number((t as any).completedAt ?? 0) >= Number(data.recentSince ?? 0);
 	const minutes = (t: Task) => Number((t as any).durationMinutes ?? 0) || 0;
-	const circleSize = (m: number) => {
-		const clamped = Math.max(12, Math.min(96, m * 2));
-		return `${clamped}px`;
-	};
-
-	const heartSize = (m: number) => {
+	const itemSize = (m: number) => {
 		const clamped = Math.max(14, Math.min(96, m * 2));
 		return `${clamped}px`;
 	};
@@ -44,77 +39,107 @@
 			(treatsValueByUser.get(tr.fromUserId) ?? 0) - tr.valueMinutes
 		);
 	}
+
+	// Categorize treats by creator
+	const yourCreatedTreats = (data.treatsAll ?? []).filter(
+		(t) => t.accepted && t.fromUserId === yourId
+	);
+	const othersCreatedTreats = (data.treatsAll ?? []).filter(
+		(t) => t.accepted && t.fromUserId !== yourId
+	);
+
+	type InsightItem = {
+		kind: 'task' | 'treat';
+		title: string;
+		emoji: string;
+		minutes: number;
+		isNew: boolean;
+	};
+
+	const youItems: InsightItem[] = [
+		...youTasks.map((t) => ({
+			kind: 'task' as const,
+			title: t.title,
+			emoji: (t.emoji as string) || '📎',
+			minutes: minutes(t),
+			isNew: isRecent(t)
+		})),
+		...yourCreatedTreats.map((tr) => ({
+			kind: 'treat' as const,
+			title: tr.title,
+			emoji: tr.emoji || '♥️',
+			minutes: tr.valueMinutes,
+			isNew: Number((tr as any).acceptedAt ?? 0) >= Number(data.recentSince ?? 0)
+		}))
+	];
+
+	const othersItems: InsightItem[] = [
+		...othersTasks.map((t) => ({
+			kind: 'task' as const,
+			title: t.title,
+			emoji: (t.emoji as string) || '📎',
+			minutes: minutes(t),
+			isNew: isRecent(t)
+		})),
+		...othersCreatedTreats.map((tr) => ({
+			kind: 'treat' as const,
+			title: tr.title,
+			emoji: tr.emoji || '♥️',
+			minutes: tr.valueMinutes,
+			isNew: Number((tr as any).acceptedAt ?? 0) >= Number(data.recentSince ?? 0)
+		}))
+	];
 </script>
 
 <div class="relative z-20 px-10 py-32 text-center">
-	<h2>Insights</h2>
+	<p>Insights</p>
 
-	<section>
-		<h3>Completed tasks</h3>
-		<div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
-			<div>
-				<h4>You</h4>
-				{#if youTasks.length === 0}
-					<p class="opacity-50">No completed tasks</p>
-				{:else}
-					<ul class="mt-2 flex flex-col gap-y-2 text-left">
-						{#each youTasks as t}
-							<li class="flex items-center gap-x-3">
-								<span
-									class="inline-block rounded-full bg-blue-300"
-									style={`width:${circleSize(minutes(t))};height:${circleSize(minutes(t))};`}
-								></span>
-								<span class="flex-1">
-									{t.title}
-									<span class="opacity-60">({minutes(t)} min)</span>
-								</span>
-								{#if isRecent(t)}<span class="text-amber-500">new</span>{/if}
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</div>
-			<div>
-				<h4>All others</h4>
-				{#if othersTasks.length === 0}
-					<p class="opacity-50">No completed tasks</p>
-				{:else}
-					<ul class="mt-2 flex flex-col gap-y-2 text-left">
-						{#each othersTasks as t}
-							<li class="flex items-center gap-x-3">
-								<span
-									class="inline-block rounded-full bg-green-300"
-									style={`width:${circleSize(minutes(t))};height:${circleSize(minutes(t))};`}
-								></span>
-								<span class="flex-1">
-									{t.title}
-									<span class="opacity-60">({minutes(t)} min)</span>
-									<span class="ml-1 opacity-60"
-										>— {t.assignedUserId == null
-											? 'unassigned'
-											: userById.get(t.assignedUserId)?.name}</span
-									>
-								</span>
-								{#if isRecent(t)}<span class="text-amber-500">new</span>{/if}
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</div>
+	<div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
+		<div>
+			<h3>You</h3>
+			{#if youItems.length === 0}
+				<p class="opacity-50">No items</p>
+			{:else}
+				<ul class="mt-2 flex flex-col gap-y-2 text-left">
+					{#each youItems as item}
+						<li class="flex items-center gap-x-3">
+							<span class="select-none" style={`font-size:${itemSize(item.minutes)};line-height:1;`}
+								>{item.emoji}</span
+							>
+							<span class="flex-1">
+								{item.title}
+								<span class="opacity-60">({item.minutes} min)</span>
+							</span>
+							{#if item.isNew}
+								<span class="rounded bg-amber-100/50 px-2 py-0.5 text-xs text-amber-500">new</span>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			{/if}
 		</div>
-	</section>
-
-	<section>
-		<h3>Treats</h3>
-		<div class="mt-2 flex flex-wrap items-center justify-center gap-4">
-			{#each (data.treatsAll ?? []).filter((t) => t.accepted) as tr}
-				<div class="flex items-center gap-x-2">
-					<span class="select-none" style={`font-size:${heartSize(tr.valueMinutes)};line-height:1;`}
-						>{tr.emoji ?? '♥️'}</span
-					>
-					<span class="text-left opacity-70">{tr.title} ({tr.valueMinutes} min)</span>
-				</div>
-			{/each}
+		<div>
+			<h3>All others</h3>
+			{#if othersItems.length === 0}
+				<p class="opacity-50">No items</p>
+			{:else}
+				<ul class="mt-2 flex flex-col gap-y-2 text-left">
+					{#each othersItems as item}
+						<li class="flex items-center gap-x-3">
+							<span class="select-none" style={`font-size:${itemSize(item.minutes)};line-height:1;`}
+								>{item.emoji}</span
+							>
+							<span class="flex-1">
+								{item.title}
+								<span class="opacity-60">({item.minutes} min)</span>
+							</span>
+							{#if item.isNew}
+								<span class="rounded bg-amber-100/50 px-2 py-0.5 text-xs text-amber-500">new</span>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			{/if}
 		</div>
-	</section>
+	</div>
 </div>

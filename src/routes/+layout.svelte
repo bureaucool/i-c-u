@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
+
 	import Logo from '$lib/components/logo.svelte';
 	import { page } from '$app/state';
 	import { fade } from 'svelte/transition';
@@ -22,7 +22,6 @@
 
 <svelte:head>
 	<title>I C U</title>
-	<!-- <link rel="icon" href={favicon} /> -->
 </svelte:head>
 
 {#if data.user}
