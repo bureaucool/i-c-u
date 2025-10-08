@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Task, Treat, User } from '$lib/types';
+	import { rangeDays, percentages } from '$lib/stores/states';
 	let {
 		data
 	}: {
@@ -134,6 +135,15 @@
 			id="range-select"
 			name="range"
 			class="rounded border border-black/20 bg-white/80 px-2 py-1"
+			onchange={(e) => {
+				const v = Number((e.currentTarget as HTMLSelectElement).value);
+				rangeDays.set(v === 30 ? 30 : 7);
+				fetch(`/api/insights?range=${$rangeDays}`)
+					.then((r) => r.json())
+					.then((j) => {
+						percentages.set(j.percentages ?? [0, 0]);
+					});
+			}}
 		>
 			<option value="7" selected>Last 7 days</option>
 			<option value="30">Last 30 days</option>

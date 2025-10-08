@@ -4,7 +4,7 @@
 	import Logo from '$lib/components/logo.svelte';
 	import { page } from '$app/state';
 	import { fade } from 'svelte/transition';
-	import { percentages } from '$lib/stores/states';
+	import { percentages, rangeDays } from '$lib/stores/states';
 
 	let {
 		children,
@@ -22,9 +22,10 @@
 
 	let currentGroupTitle = $derived(data.activeGroup?.title ?? '');
 
-	// Keep global store in sync
+	// Keep global stores in sync
 	$effect(() => {
 		percentages.set(data.globalAdjustedPercentages ?? [0, 0]);
+		rangeDays.set(data.rangeDays ?? 7);
 	});
 </script>
 
