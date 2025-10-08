@@ -438,6 +438,14 @@
 				class="absolute inset-0 bg-white/80"
 				onclick={() => (completeOpen = false)}
 			></button>
+			<div
+				class="absolute inset-x-0 top-1/5 z-20 flex w-full flex-row justify-center gap-x-10 px-10 text-[8rem]"
+				in:fade={{ duration: 500, easing: sineInOut, delay: 1500 }}
+				out:fade={{ duration: 100, easing: sineInOut }}
+			>
+				<span class="animate-twinkle">👁️</span>
+				<span>👁️</span>
+			</div>
 			<div class="pointer-events-none absolute inset-0 z-10">
 				<Fireworks />
 			</div>

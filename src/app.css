@@ -4,6 +4,17 @@
 	--font-sans: 'neue-haas-grotesk-display', sans-serif;
 	--font-sans-weight: 600;
 	--font-sans-style: normal;
+
+	--animate-twinkle: twinkle 0.5s 3s ease-in-out;
+	@keyframes twinkle {
+		0%,
+		100% {
+			transform: scaleY(1);
+		}
+		50% {
+			transform: scaleY(0);
+		}
+	}
 }
 
 /* 
