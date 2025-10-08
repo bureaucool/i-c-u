@@ -11,6 +11,7 @@
 	import { fade, fly } from 'svelte/transition';
 
 	import Portal from 'svelte-portal';
+	import Fireworks from '$lib/components/fireworks.svelte';
 
 	let {
 		data
@@ -437,8 +438,11 @@
 				class="absolute inset-0 bg-white/80"
 				onclick={() => (completeOpen = false)}
 			></button>
+			<div class="pointer-events-none absolute inset-0 z-10">
+				<Fireworks />
+			</div>
 			<div
-				class="relative z-10 flex flex-col gap-y-5 rounded-full bg-black/90 p-10 text-white"
+				class="relative z-20 flex flex-col gap-y-5 rounded-full bg-black/90 p-10 text-white"
 				in:fly={{ duration: 500, easing: expoOut, y: 200 }}
 				out:fade={{ duration: 100, easing: sineInOut }}
 			>
