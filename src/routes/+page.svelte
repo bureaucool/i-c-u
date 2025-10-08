@@ -46,6 +46,8 @@
 		acceptedNotices = acceptedNotices.filter((t: any) => t.id !== id);
 	}
 
+	let loginOpen = $state(false);
+
 	// Overlays for complete/edit
 	let completeOpen = $state(false);
 	let editOpen = $state(false);
@@ -114,54 +116,63 @@
 	}
 </script>
 
-<div class="pointer-events-none fixed inset-0 top-3 z-40">
-	<div class="mx-auto flex max-w-xl justify-end px-7">
-		<a href="/settings" class="pointer-events-auto p-3"
-			><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
-		>
-	</div>
-</div>
-
-{#if !data.user}
-	<div class="fixed top-3 right-3">
-		<div class="flex flex-col gap-y-2">
-			<form
-				class="flex flex-col gap-y-2"
-				onsubmit={async (e) => {
-					e.preventDefault();
-					loginMsg = loginErr = null;
-					const form = new FormData(e.currentTarget as HTMLFormElement);
-					const body = Object.fromEntries(form.entries());
-					const res = await fetch('/api/auth', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(body)
-					});
-					if (res.ok) {
-						loginMsg = 'Logged in. Reloading...';
-						location.reload();
-					} else {
-						const err = await res.json().catch(() => ({}));
-						loginErr = err?.error || err?.message || 'Login failed';
-					}
-				}}
+{#if data.user}
+	<div class="pointer-events-none fixed inset-0 top-3 z-40">
+		<div class="mx-auto flex max-w-xl justify-end px-7">
+			<a href="/settings" class="pointer-events-auto p-3"
+				><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
 			>
-				<input name="email" type="email" placeholder="Email" required />
-				<input name="password" type="password" placeholder="Password" required />
-				<button type="submit">Log in</button>
-			</form>
-			{#if loginMsg}<p>{loginMsg}</p>{/if}
-			{#if loginErr}<p>{loginErr}</p>{/if}
 		</div>
-		<div class="">Or <a href="/setup">setup</a> a new group</div>
 	</div>
 {/if}
 
 {#if !data.user}
-	<section class="flex h-screen w-screen flex-col items-center justify-center gap-y-5">
+	<section class="flex h-full w-full flex-col items-center justify-center gap-y-5">
 		<h2>i-c-u</h2>
 		<p>Collaborative task manager, focused on appreciation and balance</p>
 	</section>
+
+	{#if loginOpen}
+		<div class="fixed inset-0 z-10 h-full w-full" onclick={() => (loginOpen = false)}></div>
+		<div class="fixed top-3 right-3 z-20 rounded-xl bg-white p-3">
+			<div class="flex flex-col gap-y-2">
+				<form
+					class="flex flex-col gap-y-2"
+					onsubmit={async (e) => {
+						e.preventDefault();
+						loginMsg = loginErr = null;
+						const form = new FormData(e.currentTarget as HTMLFormElement);
+						const body = Object.fromEntries(form.entries());
+						const res = await fetch('/api/auth', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(body)
+						});
+						if (res.ok) {
+							loginMsg = 'Logged in. Reloading...';
+							loginOpen = false;
+							location.reload();
+						} else {
+							const err = await res.json().catch(() => ({}));
+							loginErr = err?.error || err?.message || 'Login failed';
+						}
+					}}
+				>
+					<input name="email" type="email" placeholder="Email" required />
+					<input name="password" type="password" placeholder="Password" required />
+					<button type="submit">Log in</button>
+				</form>
+				{#if loginMsg}<p>{loginMsg}</p>{/if}
+				{#if loginErr}<p>{loginErr}</p>{/if}
+			</div>
+		</div>
+	{:else}
+		<div class="fixed top-3 right-3">
+			<div class="flex flex-col gap-y-2">
+				<button onclick={() => (loginOpen = true)}>Log in</button>
+			</div>
+		</div>
+	{/if}
 {:else}
 	<section class="relative flex flex-col gap-y-10">
 		{#if (data.pendingTreats ?? []).length > 0}

@@ -22,6 +22,13 @@
       "when": 1760000000000,
       "tag": "0002_treat_accept_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1759955981932,
+      "tag": "0003_nifty_katie_power",
+      "breakpoints": true
     }
   ]
 }
