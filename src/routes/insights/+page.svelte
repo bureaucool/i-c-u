@@ -127,7 +127,7 @@
 	<p class="text-center text-3xl">Don't compare, appreciate!<br />😚</p>
 
 	<form
-		class="mx-auto mt-6 flex max-w-3xl flex-wrap items-end justify-center gap-3 text-left"
+		class="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-3 text-left"
 		method="GET"
 	>
 		<label for="range-select" class="text-sm opacity-60">Comparison range</label>
@@ -148,7 +148,6 @@
 			<option value="7" selected>Last 7 days</option>
 			<option value="30">Last 30 days</option>
 		</select>
-		<noscript><button class="rounded bg-black px-3 py-2 text-white">Apply</button></noscript>
 	</form>
 
 	<!-- <div class="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-6 text-left">
@@ -182,8 +181,8 @@
 							<span class="select-none" style={`font-size:${itemSize(item.minutes)};line-height:1;`}
 								>{item.emoji}</span
 							>
-							<span class="flex-1">
-								{item.title}
+							<span class="flex flex-1 flex-col leading-tight">
+								<span>{item.title}</span>
 								<span class="opacity-60">({item.minutes} min)</span>
 							</span>
 							{#if item.isNew}
@@ -205,8 +204,8 @@
 							<span class="select-none" style={`font-size:${itemSize(item.minutes)};line-height:1;`}
 								>{item.emoji}</span
 							>
-							<span class="flex-1">
-								{item.title}
+							<span class="flex flex-col leading-tight">
+								<span>{item.title}</span>
 								<span class="opacity-60">({item.minutes} min)</span>
 							</span>
 							{#if item.isNew}
