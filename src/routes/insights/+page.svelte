@@ -23,7 +23,7 @@
 	}
 </script>
 
-<div class="relative z-20 px-10 py-20 text-center">
+<div class="relative z-20 px-10 py-32 text-center">
 	<h2>Insights</h2>
 
 	<section>

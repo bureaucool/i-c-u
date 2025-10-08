@@ -117,5 +117,19 @@ export const actions: Actions = {
 				.run();
 		}
 		return { ok: true };
+	},
+	removeMember: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { message: 'unauthorized' });
+		const form = await request.formData();
+		const userId = Number(form.get('userId'));
+		const groupId = locals.groupId;
+		if (!Number.isFinite(userId) || !Number.isFinite(groupId))
+			return fail(400, { message: 'invalid' });
+
+		await db
+			.delete(groupMember)
+			.where(and(eq(groupMember.groupId, groupId as number), eq(groupMember.userId, userId)))
+			.run();
+		return { ok: true };
 	}
 };

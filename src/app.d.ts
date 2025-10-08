@@ -10,6 +10,7 @@ declare global {
 		interface PageData {
 			user?: { id: number; name: string; email?: string } | null;
 			groupId?: number | null;
+			activeGroup?: { id: number; title: string } | null;
 		}
 		// interface PageState {}
 		// interface Platform {}

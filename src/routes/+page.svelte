@@ -132,11 +132,11 @@
 		<p>Collaborative task manager, focused on appreciation and balance</p>
 	</section>
 {:else}
-	<section class="mx-auto flex max-w-xl flex-col gap-y-10 px-10 py-20">
+	<section class="flex flex-col gap-y-10">
 		<section>
 			<h2>Today</h2>
 			{#if tasksToday.length === 0}
-				<p class="text-2xl opacity-30">No tasks</p>
+				<p class="text-3xl opacity-30">No tasks</p>
 			{:else}
 				<ul>
 					{#each tasksToday as t}
@@ -154,7 +154,7 @@
 		<section>
 			<h2>Upcoming</h2>
 			{#if tasksUpcoming.length === 0}
-				<p class="text-2xl opacity-30">No tasks</p>
+				<p class="text-3xl opacity-30">No tasks</p>
 			{:else}
 				<ul>
 					{#each tasksUpcoming as t}
@@ -173,7 +173,7 @@
 		<section>
 			<h2>Unscheduled</h2>
 			{#if tasksNoDate.length === 0}
-				<p class="text-2xl opacity-30">No tasks</p>
+				<p class="text-3xl opacity-30">No tasks</p>
 			{:else}
 				<ul>
 					{#each tasksNoDate as t}
@@ -192,7 +192,7 @@
 		<section>
 			<h2>Completed</h2>
 			{#if (data.completedTasks ?? []).length === 0}
-				<p class="text-2xl opacity-30">No tasks</p>
+				<p class="text-3xl opacity-30">No tasks</p>
 			{:else}
 				<ul>
 					{#each data.completedTasks ?? [] as t}
