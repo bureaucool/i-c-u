@@ -3,18 +3,26 @@
 
 	let {
 		task,
+		completed = false,
 		clickComplete,
 		clickEdit
-	}: { task: Task; clickComplete: () => void; clickEdit: () => void } = $props();
+	}: {
+		task: Task;
+		completed?: boolean;
+		clickComplete: () => void;
+		clickEdit: () => void;
+	} = $props();
 </script>
 
 <div class="flex flex-row items-center gap-x-1">
 	<button
 		aria-label="Complete task"
-		class="mb-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-black"
+		class="mb-2 flex h-5 w-5 items-center justify-center rounded-full border-2 {completed
+			? 'bg-black'
+			: ''}"
 		onclick={clickComplete}>&nbsp;</button
 	>
-	<button class="flex flex-col items-start gap-y-0" onclick={clickEdit}>
+	<button class="gap-y- flex flex-col items-start" onclick={clickEdit}>
 		<div class="text-2xl leading-none">
 			<span>{task.emoji}</span>
 			<span>{task.title}</span>

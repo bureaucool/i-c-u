@@ -14,7 +14,13 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		typeof (body as any).emoji === 'string' ? ((body as any).emoji as string) : undefined;
 	const durationMinutes = body.durationMinutes == null ? undefined : Number(body.durationMinutes);
 	const assignedUserId = body.assignedUserId == null ? undefined : Number(body.assignedUserId);
-	const scheduledAt = body.scheduledAt == null ? undefined : Number(body.scheduledAt);
+	// Accept explicit null to clear scheduledAt; undefined means don't touch
+	const scheduledAt =
+		(body as any).scheduledAt === null
+			? null
+			: (body as any).scheduledAt === undefined
+				? undefined
+				: Number((body as any).scheduledAt);
 	const recurrenceType = typeof body.recurrenceType === 'string' ? body.recurrenceType : undefined;
 	const recurrenceInterval =
 		body.recurrenceInterval == null ? undefined : Number(body.recurrenceInterval);

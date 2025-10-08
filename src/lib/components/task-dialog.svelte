@@ -111,7 +111,18 @@
 			/>
 		{/if}
 	</div>
-	<input type="date" bind:value={date} />
+	<div>
+		<input type="date" bind:value={date} />
+		{#if date}
+			<button
+				type="button"
+				onclick={() => {
+					date = '';
+					time = '';
+				}}>clear</button
+			>
+		{/if}
+	</div>
 	<input type="time" bind:value={time} />
 	<select bind:value={recurrenceType}>
 		<option value="">One-time</option>

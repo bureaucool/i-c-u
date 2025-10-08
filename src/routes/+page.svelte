@@ -197,7 +197,7 @@
 				<ul>
 					{#each data.completedTasks ?? [] as t}
 						<li>
-							<TaskItem task={t} clickComplete={() => {}} clickEdit={() => openEdit(t)} />
+							<TaskItem completed task={t} clickComplete={() => {}} clickEdit={() => openEdit(t)} />
 						</li>
 					{/each}
 				</ul>
