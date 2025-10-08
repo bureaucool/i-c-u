@@ -150,7 +150,7 @@
 		accumulatorMs = 0;
 	});
 
-	$inspect?.({ particles: () => particles.length });
+	// $inspect?.({ particles: () => particles.length });
 </script>
 
 <canvas bind:this={canvas} class="block {className}"></canvas>
