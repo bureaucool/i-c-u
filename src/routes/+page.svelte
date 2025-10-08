@@ -7,6 +7,8 @@
 	import Button from '$lib/components/button.svelte';
 	import AcceptTreat from '$lib/components/accept-treat.svelte';
 	import Floating from '$lib/components/floating.svelte';
+	import { expoOut, sineInOut } from 'svelte/easing';
+	import { fade, fly } from 'svelte/transition';
 
 	let {
 		data
@@ -29,13 +31,6 @@
 	let addErr = $state<string | null>(null);
 	// Floating treat accept flow state
 	let acceptingTreatId: number | null = $state(null);
-	let acceptMinutes: number | null = $state(null);
-	let acceptFeedback: string = $state('');
-
-	let title = $state<string | null>(null);
-	let emoji = $state<string | null>('');
-	let selectableEmojis = $state<string[]>([]);
-	let showPicker = $state(false);
 
 	// Overlays for complete/edit
 	let completeOpen = $state(false);
@@ -231,13 +226,21 @@
 {/if}
 
 {#if showAdd}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-white/80 px-10">
+	<div class="fixed inset-0 z-50 flex items-center justify-center px-10">
+		<div
+			class="absolute inset-0 bg-white/80"
+			transition:fade|global={{ duration: 100, easing: sineInOut }}
+		></div>
 		<button
 			aria-label="Close"
 			class="absolute inset-0 z-0 bg-black/50"
 			onclick={() => (showAdd = false)}
 		></button>
-		<div class="relative z-10 flex flex-col gap-y-10 rounded-xl bg-black/90 p-5 text-white">
+		<div
+			class="relative z-10 flex flex-col gap-y-10 rounded-xl bg-black/90 p-5 text-white"
+			in:fly={{ duration: 500, easing: expoOut, y: 200 }}
+			out:fade={{ duration: 100, easing: sineInOut }}
+		>
 			{#if !editOpen}
 				<div class="flex flex-row justify-center gap-x-4 text-3xl">
 					<button

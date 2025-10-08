@@ -52,10 +52,7 @@
 		hovered = false;
 	}}
 >
-	<div
-		in:fade|global={{ duration: 800, easing: sineInOut, delay: 500 }}
-		out:fade|global={{ duration: 400, easing: sineInOut }}
-	>
+	<div>
 		<span style="transform: translate3d({addX}px, {addY}px, 0);" class="absolute top-0 left-0">
 			{@render children?.()}
 		</span>

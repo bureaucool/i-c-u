@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import type { Treat } from '$lib/types';
-	import { expoOut, sineInOut } from 'svelte/easing';
+	import { bounceOut, elasticOut, expoOut, sineInOut } from 'svelte/easing';
 	import Button from './button.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
@@ -28,8 +28,8 @@
 {#if mounted}
 	<div
 		class="rounded-full bg-pink-100 p-10 shadow-xl"
-		in:fly|global={{ duration: 1000, easing: expoOut, y: 50 }}
-		out:fade|global={{ duration: 300, easing: sineInOut }}
+		in:fly|global={{ duration: 1500, easing: elasticOut, y: 50, delay: 400 }}
+		out:fade={{ duration: 200, easing: sineInOut }}
 	>
 		<div class="flex flex-col items-center gap-x-3">
 			<div class="text-6xl">{(tr as any).emoji ?? '♥️'}</div>

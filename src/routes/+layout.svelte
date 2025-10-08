@@ -3,6 +3,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import Logo from '$lib/components/logo.svelte';
 	import { page } from '$app/state';
+	import { fade } from 'svelte/transition';
 
 	let {
 		children,
@@ -39,12 +40,18 @@
 		</div>
 	{/if}
 {/if}
-<div class="relative z-10 mx-auto max-w-xl px-10 py-32">
-	<div class="absolute inset-0 rounded-full bg-white blur-3xl"></div>
-	<div class="relative z-10">
-		{@render children?.()}
+{#key page.url.pathname}
+	<div
+		class="relative top-0 z-10 mx-auto max-w-xl px-10 py-32"
+		in:fade|local={{ duration: 400, delay: 200 }}
+		out:fade|local={{ duration: 200, delay: 0 }}
+	>
+		<div class="absolute inset-0 rounded-full bg-white blur-3xl"></div>
+		<div class="relative z-10">
+			{@render children?.()}
+		</div>
 	</div>
-</div>
+{/key}
 
 <div class="rainbow-bg fixed inset-0"></div>
 bg
