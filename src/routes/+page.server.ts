@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { task, user, treat } from '$lib/server/db/schema';
-import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull, desc, or, not } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) return { user: null };
@@ -23,6 +23,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		: [];
 	// Revert: show all users (settings page handles membership separately)
 	const users = await db.select().from(user);
+	// Show pending treats to accept (you are recipient and not yet accepted)
 	const pendingTreats = gid
 		? await db
 				.select()
@@ -31,6 +32,25 @@ export const load: PageServerLoad = async ({ locals }) => {
 					and(eq(treat.groupId, gid), eq(treat.toUserId, locals.user.id), eq(treat.accepted, false))
 				)
 		: [];
+
+	// Show one-time notification to the creator when a treat they sent was accepted
+	const acceptedTreatsToNotify = gid
+		? await db
+				.select()
+				.from(treat)
+				.where(
+					and(
+						eq(treat.groupId, gid),
+						eq(treat.fromUserId, locals.user.id),
+						eq(treat.accepted, true),
+						or(
+							eq(treat.acceptedNotifiedAt as any, null),
+							not(isNotNull(treat.acceptedNotifiedAt as any))
+						)
+					)
+				)
+				.orderBy(desc(treat.acceptedAt as any))
+		: [];
 	return {
 		user: locals.user,
 		groupId: gid,
@@ -38,6 +58,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		activeTasks: active,
 		completedTasks: completed,
 		users,
-		pendingTreats
+		pendingTreats,
+		acceptedTreatsToNotify
 	};
 };

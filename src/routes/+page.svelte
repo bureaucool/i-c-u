@@ -32,6 +32,17 @@
 	// Floating treat accept flow state
 	let acceptingTreatId: number | null = $state(null);
 
+	// One-time acceptance notification (for creator)
+	let acceptedNotices = $state((data as any).acceptedTreatsToNotify ?? []);
+	async function acknowledgeAccepted(id: number) {
+		await fetch(`/api/treats/${id}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ acknowledgeAccepted: true })
+		});
+		acceptedNotices = acceptedNotices.filter((t: any) => t.id !== id);
+	}
+
 	// Overlays for complete/edit
 	let completeOpen = $state(false);
 	let editOpen = $state(false);
@@ -139,6 +150,21 @@
 			{#each data.pendingTreats ?? [] as tr}
 				<Floating classes="z-50">
 					<AcceptTreat onAccept={(id) => (acceptingTreatId = id)} {tr} {acceptingTreatId} />
+				</Floating>
+			{/each}
+		{/if}
+
+		{#if (acceptedNotices ?? []).length > 0}
+			{#each acceptedNotices as tr}
+				<Floating classes="z-50">
+					<div class="flex items-center gap-x-3 rounded-lg bg-white p-3 shadow">
+						<span class="text-2xl">{tr.emoji ?? '♥️'}</span>
+						<div class="flex flex-col">
+							<strong>Accepted</strong>
+							<span class="opacity-80">{tr.title} ({tr.valueMinutes} min)</span>
+						</div>
+						<button class="ml-2" onclick={() => acknowledgeAccepted(tr.id)}>Dismiss</button>
+					</div>
 				</Floating>
 			{/each}
 		{/if}

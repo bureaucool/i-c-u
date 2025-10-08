@@ -4,7 +4,7 @@ import { db } from '$lib/server/db';
 import { task } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 
-export const PATCH: RequestHandler = async ({ params, request }) => {
+export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const id = Number(params.id);
 	if (!Number.isFinite(id)) throw error(400, 'invalid id');
 
@@ -13,7 +13,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	const emoji =
 		typeof (body as any).emoji === 'string' ? ((body as any).emoji as string) : undefined;
 	const durationMinutes = body.durationMinutes == null ? undefined : Number(body.durationMinutes);
-	const assignedUserId = body.assignedUserId == null ? undefined : Number(body.assignedUserId);
+	let assignedUserId = body.assignedUserId == null ? undefined : Number(body.assignedUserId);
 	// Accept explicit null to clear scheduledAt; undefined means don't touch
 	const scheduledAt =
 		(body as any).scheduledAt === null
@@ -32,6 +32,10 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		updates.durationMinutes = durationMinutes;
 		// set completedAt when durationMinutes is set
 		updates.completedAt = Date.now();
+		// ensure the completing user is set as assignee if not provided
+		if (assignedUserId === undefined && locals.user?.id != null) {
+			assignedUserId = Number(locals.user.id);
+		}
 	}
 	if (assignedUserId !== undefined) updates.assignedUserId = assignedUserId;
 	if (scheduledAt !== undefined) updates.scheduledAt = scheduledAt;

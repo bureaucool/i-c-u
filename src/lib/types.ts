@@ -24,8 +24,9 @@ export type Treat = {
 	toUserId: number;
 	accepted: boolean;
 	valueMinutes: number;
-    createdAt: number;
-    acceptedAt?: number | null;
-    declinedAt?: number | null;
-    feedbackNote?: string | null;
+	createdAt: number;
+	acceptedAt?: number | null;
+	declinedAt?: number | null;
+	feedbackNote?: string | null;
+	acceptedNotifiedAt?: number | null;
 };

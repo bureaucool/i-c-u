@@ -87,7 +87,8 @@ export const treat = sqliteTable('treat', {
 	createdAt: integer('created_at').notNull(),
 	acceptedAt: integer('accepted_at'),
 	declinedAt: integer('declined_at'),
-	feedbackNote: text('feedback_note')
+	feedbackNote: text('feedback_note'),
+	acceptedNotifiedAt: integer('accepted_notified_at')
 });
 
 export const session = sqliteTable('session', {
