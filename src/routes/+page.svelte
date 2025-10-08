@@ -427,32 +427,56 @@
 {/if}
 
 {#if completeOpen && selectedTask}
-	<div>
-		<h3>Complete task</h3>
-		<p>{selectedTask.title}</p>
-		<form
-			onsubmit={async (e) => {
-				e.preventDefault();
-				if (selectedTask == null) return;
-				const res = await fetch(`/api/tasks/${selectedTask.id}`, {
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						durationMinutes: Number(completeMinutes ?? 0) || 0,
-						userId: data.user?.id
-					})
-				});
-				if (res.ok) {
-					completeOpen = false;
-
-					invalidateAll();
-				}
-			}}
+	<div class="fixed inset-0 z-50 flex items-center justify-center px-10">
+		<button
+			transition:fade={{ duration: 100, easing: sineInOut }}
+			aria-label="Close"
+			class="absolute inset-0 bg-white/80"
+			onclick={() => (completeOpen = false)}
+		></button>
+		<div
+			class="relative z-10 flex flex-col gap-y-10 rounded-full bg-black/90 p-10 text-white"
+			in:fly={{ duration: 500, easing: expoOut, y: 200 }}
+			out:fade={{ duration: 100, easing: sineInOut }}
 		>
-			<input type="number" min="0" step="1" placeholder="Minutes" bind:value={completeMinutes} />
-			<button type="submit">Save</button>
-			<button type="button" onclick={() => (completeOpen = false)}>Cancel</button>
-		</form>
+			<h3 class="text-center text-3xl">
+				{selectedTask.title} <span class="opacity-50">completed</span>!
+			</h3>
+
+			<form
+				class="flex flex-col gap-y-4"
+				onsubmit={async (e) => {
+					e.preventDefault();
+					if (selectedTask == null) return;
+					const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							durationMinutes: Number(completeMinutes ?? 0) || 0,
+							userId: data.user?.id
+						})
+					});
+					if (res.ok) {
+						completeOpen = false;
+
+						invalidateAll();
+					}
+				}}
+			>
+				<input
+					class="text-3xl"
+					type="number"
+					min="0"
+					step="1"
+					placeholder="Minutes"
+					bind:value={completeMinutes}
+				/>
+				<div class="flex flex-row justify-center gap-x-2">
+					<Button grey type="submit">Save</Button>
+					<Button onclick={() => (completeOpen = false)}>Cancel</Button>
+				</div>
+			</form>
+		</div>
 	</div>
 {/if}
 
@@ -465,35 +489,44 @@
 			onclick={() => (completedOptionsOpen = false)}
 		></button>
 		<div
-			class="relative z-10 flex w-full max-w-md flex-col gap-y-4 rounded-xl bg-black/90 p-5 text-white"
+			class="relative z-10 flex w-full max-w-md flex-col gap-y-10 rounded-full bg-black/90 p-10 text-white"
+			in:fly={{ duration: 500, easing: expoOut, y: 200 }}
+			out:fade={{ duration: 100, easing: sineInOut }}
 		>
-			<h3 class="text-xl">{selectedTask.title}</h3>
-			<div class="flex items-center gap-x-2">
-				<input
-					type="number"
-					min="0"
-					step="1"
-					placeholder="Minutes"
-					bind:value={completeMinutes}
-					class="text-white"
-				/>
-				<button
-					onclick={async () => {
-						if (!selectedTask) return;
-						const res = await fetch(`/api/tasks/${selectedTask.id}`, {
-							method: 'PATCH',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({ durationMinutes: Number(completeMinutes ?? 0) || 0 })
-						});
-						if (res.ok) {
-							completedOptionsOpen = false;
-							invalidateAll();
-						}
-					}}>Save duration</button
-				>
+			<h3 class="flex flex-row justify-center gap-x-2 text-3xl">
+				<span>{selectedTask.emoji}</span><span>{selectedTask.title}</span>
+			</h3>
+			<div class="flex flex-col gap-y-0">
+				<span>Duration</span>
+				<div class="flex items-center justify-center gap-x-2">
+					<input
+						class="w-full text-3xl text-white"
+						type="number"
+						min="0"
+						step="1"
+						placeholder="Minutes"
+						bind:value={completeMinutes}
+					/>
+					<Button
+						big={false}
+						grey
+						onclick={async () => {
+							if (!selectedTask) return;
+							const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+								method: 'PATCH',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({ durationMinutes: Number(completeMinutes ?? 0) || 0 })
+							});
+							if (res.ok) {
+								completedOptionsOpen = false;
+								invalidateAll();
+							}
+						}}>Save</Button
+					>
+				</div>
 			</div>
-			<div class="flex justify-between">
-				<button
+			<div class="flex flex-row justify-center gap-x-1">
+				<Button
 					onclick={async () => {
 						if (!selectedTask) return;
 						const res = await fetch('/api/tasks', {
@@ -512,10 +545,10 @@
 							completedOptionsOpen = false;
 							invalidateAll();
 						}
-					}}>Duplicate</button
+					}}>Duplicate</Button
 				>
-				<button
-					class="text-red-400"
+				<Button
+					red
 					onclick={async () => {
 						if (!selectedTask) return;
 						if (!confirm('Delete this task?')) return;
@@ -524,7 +557,7 @@
 							completedOptionsOpen = false;
 							invalidateAll();
 						}
-					}}>Delete</button
+					}}>Delete</Button
 				>
 			</div>
 		</div>

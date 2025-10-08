@@ -92,9 +92,9 @@
 </script>
 
 <div class="relative z-20 px-10 py-32 text-center">
-	<p>Insights</p>
+	<p class="text-center text-3xl">Don't compare, appreciate!<br />😚</p>
 
-	<div class="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
+	<div class="mt-4 grid grid-cols-2 gap-3">
 		<div>
 			<h3>You</h3>
 			{#if youItems.length === 0}
@@ -119,7 +119,7 @@
 			{/if}
 		</div>
 		<div>
-			<h3>All others</h3>
+			<h3>Others</h3>
 			{#if othersItems.length === 0}
 				<p class="opacity-50">No items</p>
 			{:else}
