@@ -42,9 +42,9 @@
 					<span>{new Date(task.scheduledAt).toLocaleDateString()}</span>
 				{/if}
 				{#if task.assignedUserId != null}
-					<span
+					<span class="rounded-full bg-neutral-200 px-3 py-0.25 leading-none"
 						>{task.assignedUserId === currentUserId
-							? 'you'
+							? 'You'
 							: (userById.get(task.assignedUserId)?.name ?? 'unknown')}</span
 					>
 				{/if}
