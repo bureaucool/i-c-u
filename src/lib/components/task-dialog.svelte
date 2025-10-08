@@ -68,14 +68,27 @@
 {#if task}
 	<p class="text-center text-3xl"><span class="opacity-30">Editing</span> {task.title}</p>
 {/if}
-<form onsubmit={submit}>
-	<div class="flex flex-col gap-y-2">
-		<input name="emoji" type={!emoji ? 'hidden' : 'text'} value={emoji ?? ''} />
+<form onsubmit={submit} class="flex flex-col items-center gap-y-10">
+	<div class="flex flex-col items-center gap-y-5">
+		<div class="flex h-20 w-20 items-center justify-center rounded-full border border-white/20 p-2">
+			<input
+				class="w-full text-center text-3xl"
+				name="emoji"
+				type={!emoji ? 'hidden' : 'text'}
+				value={emoji ?? ''}
+			/>
+			{#if emoji === ''}
+				<span class="text-center text-xs leading-tight opacity-50">Auto populated by title</span>
+			{/if}
+		</div>
 		{#if foundEmojis.length > 0}
-			<div>
+			<div class="max-w-48">
 				{#each foundEmojis as emojiItem}
 					<button
 						type="button"
+						class={emoji === (emojiItem.emoji || emojiItem.character || '')
+							? 'rounded-2xl bg-white/80'
+							: ''}
 						onclick={() => (emoji = emojiItem.emoji || emojiItem.character || '')}
 					>
 						{emojiItem.emoji || emojiItem.character}
@@ -86,7 +99,7 @@
 		{#if !showPicker}
 			<div class="flex flex-row justify-center gap-x-1">
 				<Button grey big={false} onclick={() => (showPicker = true)}>Browse</Button>
-				<Button grey big={false} onclick={() => (emoji = '')}>Clear</Button>
+				<Button grey big={false} onclick={() => (emoji = '')} disabled={emoji === ''}>Clear</Button>
 			</div>
 		{/if}
 		{#if showPicker}<Button grey big={false} onclick={() => (showPicker = false)}>hide</Button>{/if}
@@ -122,45 +135,63 @@
 		/>
 	</div>
 
-	<div>
-		<input type="date" bind:value={date} />
-		{#if date}
-			<button
-				type="button"
-				onclick={() => {
-					date = '';
-					time = '';
-				}}>clear</button
+	<div class="flex w-full flex-row gap-x-10">
+		<div class="flex grow flex-col gap-y-0">
+			<span>Date</span>
+			<input type="date" class="w-60 text-3xl" bind:value={date} />
+			{#if date}
+				<button
+					type="button"
+					onclick={() => {
+						date = '';
+						time = '';
+					}}>clear</button
+				>
+			{/if}
+		</div>
+		<div class="flex grow flex-col gap-y-0">
+			<span>Time</span>
+			<input type="time" bind:value={time} />
+		</div>
+	</div>
+	<div class="flex w-full flex-col gap-y-0">
+		<span>Recurrence</span>
+		<select class="text-3xl" bind:value={recurrenceType}>
+			<option value="">One-time</option>
+			<option value="daily">Daily</option>
+			<option value="weekly">Weekly</option>
+			<option value="monthly">Monthly</option>
+			<option value="every_x_days">Every X days</option>
+			<option value="every_x_weeks">Every X weeks</option>
+			<option value="every_x_months">Every X months</option>
+		</select>
+	</div>
+	<div class={recurrenceType.includes('every_x_') ? 'flex w-full flex-col gap-y-0' : 'hidden'}>
+		<span>Every</span>
+		<input class="text-3xl" type="number" min="1" placeholder="X" bind:value={recurrenceInterval} />
+	</div>
+
+	<div class="flex w-full flex-col gap-y-0">
+		<span>Assigned to</span>
+		<select class="text-3xl" bind:value={assignedUserId}>
+			<option value="">All</option>
+			{#each users as u}
+				<option value={u.id}>{u.name}</option>
+			{/each}
+		</select>
+	</div>
+	<div class="flex w-full flex-row justify-center gap-x-2">
+		<Button grey type="submit">Save</Button>
+		<Button onclick={onCancel}>Cancel</Button>
+		{#if task}
+			<Button
+				red
+				onclick={async () => {
+					if (confirm('Delete this task?')) {
+						await onDelete?.();
+					}
+				}}>Delete</Button
 			>
 		{/if}
 	</div>
-	<input type="time" bind:value={time} />
-	<select bind:value={recurrenceType}>
-		<option value="">One-time</option>
-		<option value="daily">Daily</option>
-		<option value="weekly">Weekly</option>
-		<option value="monthly">Monthly</option>
-		<option value="every_x_days">Every X days</option>
-		<option value="every_x_weeks">Every X weeks</option>
-		<option value="every_x_months">Every X months</option>
-	</select>
-	<input type="number" min="1" placeholder="X" bind:value={recurrenceInterval} />
-	<select bind:value={assignedUserId}>
-		<option value="">Unassigned</option>
-		{#each users as u}
-			<option value={u.id}>{u.name}</option>
-		{/each}
-	</select>
-	<button type="submit">Save</button>
-	<button type="button" onclick={onCancel}>Cancel</button>
-	{#if task}
-		<button
-			type="button"
-			onclick={async () => {
-				if (confirm('Delete this task?')) {
-					await onDelete?.();
-				}
-			}}>Delete</button
-		>
-	{/if}
 </form>

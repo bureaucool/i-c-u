@@ -227,11 +227,11 @@
 			{#if !editOpen}
 				<div class="flex flex-row justify-center gap-x-4 text-3xl">
 					<button
-						class={formType !== 'task' ? 'opacity-50' : ''}
+						class="{formType !== 'task' ? 'opacity-50' : ''} cursor-pointer md:hover:scale-110"
 						onclick={() => (formType = 'task')}>🔨 Task</button
 					>
 					<button
-						class={formType !== 'treat' ? 'opacity-50' : ''}
+						class="{formType !== 'treat' ? 'opacity-50' : ''} cursor-pointer md:hover:scale-110"
 						onclick={() => (formType = 'treat')}>♥️ Treat</button
 					>
 				</div>
