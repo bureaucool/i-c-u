@@ -70,27 +70,26 @@
 <section class="flex min-h-screen flex-col items-center justify-center gap-y-4 p-6 text-center">
 	<h1 class="text-3xl">Reset password</h1>
 	{#if !canSet}
-		<p>Open the reset link from your email to set a new password.</p>
-	{:else}
-		<form class="flex w-full max-w-sm flex-col gap-y-2" onsubmit={handleSubmit}>
-			<input
-				type="password"
-				placeholder="New password (min 8 chars)"
-				bind:value={newPassword}
-				minlength="8"
-				required
-			/>
-			<input
-				type="password"
-				placeholder="Confirm new password"
-				bind:value={confirmPassword}
-				minlength="8"
-				required
-			/>
-			<button type="submit">Set new password</button>
-		</form>
-		{#if msg}<p>{msg}</p>{/if}
-		{#if err}<p>{err}</p>{/if}
+		<p class="opacity-70">Open the reset link from your email to set a new password.</p>
 	{/if}
+	<form class="flex w-full max-w-sm flex-col gap-y-2" onsubmit={handleSubmit}>
+		<input
+			type="password"
+			placeholder="New password (min 8 chars)"
+			bind:value={newPassword}
+			minlength="8"
+			required
+		/>
+		<input
+			type="password"
+			placeholder="Confirm new password"
+			bind:value={confirmPassword}
+			minlength="8"
+			required
+		/>
+		<button type="submit">Set new password</button>
+	</form>
+	{#if msg}<p>{msg}</p>{/if}
+	{#if err}<p>{err}</p>{/if}
 	<a class="underline" href="/">Back to home</a>
 </section>
