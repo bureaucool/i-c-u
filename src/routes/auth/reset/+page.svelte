@@ -11,6 +11,34 @@
 	onMount(async () => {
 		try {
 			const supabase = createSupabaseBrowser();
+			// Try to establish a session from recovery link tokens (hash)
+			const hash = typeof window !== 'undefined' ? window.location.hash : '';
+			const hashParams = new URLSearchParams(hash?.startsWith('#') ? hash.slice(1) : hash);
+			const accessToken = hashParams.get('access_token');
+			const refreshToken = hashParams.get('refresh_token');
+			if (accessToken && refreshToken) {
+				await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+				// Clean the hash for nicer UX
+				try {
+					history.replaceState(
+						null,
+						document.title,
+						window.location.pathname + window.location.search
+					);
+				} catch {}
+			}
+
+			// Fallback: handle code exchange (PKCE)
+			const urlParams = new URLSearchParams(
+				typeof window !== 'undefined' ? window.location.search : ''
+			);
+			const code = urlParams.get('code');
+			if (code) {
+				try {
+					await supabase.auth.exchangeCodeForSession(code);
+				} catch {}
+			}
+
 			const { data } = await supabase.auth.getSession();
 			// When arriving via reset link, user will have a short-lived session allowing password update
 			canSet = !!data.session;
