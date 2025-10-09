@@ -45,8 +45,10 @@
 			}, 200) as unknown as number;
 		}
 
+		// Use unique channel name per group
+		const channelName = `group-${data.groupId}-changes`;
 		const channel = supabase
-			.channel('db-changes')
+			.channel(channelName)
 			.on(
 				'postgres_changes',
 				{ event: '*', schema: 'public', table: 'task', filter: `group_id=eq.${data.groupId}` },

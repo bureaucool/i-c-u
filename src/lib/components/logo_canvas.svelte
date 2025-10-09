@@ -16,9 +16,9 @@
 	const perc = 0.25;
 	const DPR = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
 
-	$effect(() => {
-		console.log($percentages);
-	});
+	// $effect(() => {
+	// 	console.log($percentages);
+	// });
 
 	let easedPercentages = new Spring($percentages, { stiffness: 0.1, damping: 10 });
 
