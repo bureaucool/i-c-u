@@ -2,7 +2,7 @@
  * Server-side OTP Verification Endpoint
  *
  * This endpoint is called when user clicks the password reset link from email.
- * It verifies the OTP token server-side and redirects to the reset form.
+ * It verifies the OTP token server-side, establishes a session, and redirects to settings.
  */
 
 import type { RequestHandler } from './$types';
@@ -15,7 +15,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	const type = url.searchParams.get('type');
 
 	if (!token_hash || type !== 'recovery') {
-		// Redirect to error page or home
+		// Redirect to home with error message
 		throw redirect(303, '/?error=invalid_reset_link');
 	}
 
@@ -39,6 +39,6 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	}
 
 	// OTP verified! Session is now established via cookies
-	// Redirect to a simple password reset form
-	throw redirect(303, '/auth/reset/confirm');
+	// Redirect directly to settings where user can change their password
+	throw redirect(303, '/settings?reset_success=true');
 };

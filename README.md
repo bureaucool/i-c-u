@@ -182,8 +182,9 @@ This app uses a **hybrid authentication system**:
 ### Routes
 
 - `/setup` — Create a new `group` and the first `user` (name, email, password). After creation, a membership is added and the user is logged in.
-- `/settings` — Update group title and adjust the current user's availability. Also supports changing the logged-in user's password.
-- `/auth/reset` — Password reset page (accessed via email link)
+- `/settings` — Update group title, adjust user availability, and change password. Also the landing page after password reset.
+- `/auth/reset` — Legacy password reset page (for PKCE flow debugging; not used in normal flow)
+- `/api/auth/confirm` — Server endpoint that verifies OTP tokens from password reset emails
 
 ### Password Reset Configuration (PKCE-Free Solution)
 
@@ -241,9 +242,9 @@ Server verifies OTP using supabase.auth.verifyOtp()
   ↓
 Session established via cookies
   ↓
-Redirect to /auth/reset/confirm
+Redirect to /settings?reset_success=true
   ↓
-User sets new password (authenticated)
+User changes password in settings page
   ↓
 Done! ✅
 ```
@@ -259,5 +260,5 @@ Done! ✅
 1. Click "Reset password" on your app
 2. Enter email address
 3. Check email for reset link
-4. Click link → redirected to password reset form
-5. Set new password
+4. Click link → automatically logged in and redirected to Settings
+5. See success message and change password in Settings page

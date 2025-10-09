@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	import Button from '$lib/components/button.svelte';
 
 	type GroupLite = { id: number; title: string };
@@ -28,6 +30,17 @@
 
 	let editMembers = $state<boolean>(false);
 	let editTitle = $state<boolean>(false);
+
+	// Check if user arrived from password reset
+	onMount(() => {
+		if ($page.url.searchParams.get('reset_success') === 'true') {
+			pwdMsg = 'Password reset verified! You can now change your password below.';
+			// Clean up URL
+			const url = new URL(window.location.href);
+			url.searchParams.delete('reset_success');
+			window.history.replaceState({}, '', url);
+		}
+	});
 </script>
 
 <div class="pointer-events-none fixed inset-0 top-3 z-40">
