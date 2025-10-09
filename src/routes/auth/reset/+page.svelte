@@ -16,6 +16,7 @@
 			const hashParams = new URLSearchParams(hash?.startsWith('#') ? hash.slice(1) : hash);
 			const accessToken = hashParams.get('access_token');
 			const refreshToken = hashParams.get('refresh_token');
+			const hashCode = hashParams.get('code');
 			if (accessToken && refreshToken) {
 				await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
 				// Clean the hash for nicer UX
@@ -32,7 +33,7 @@
 			const urlParams = new URLSearchParams(
 				typeof window !== 'undefined' ? window.location.search : ''
 			);
-			const code = urlParams.get('code');
+			const code = urlParams.get('code') || hashCode;
 			if (code) {
 				try {
 					await supabase.auth.exchangeCodeForSession(code);
