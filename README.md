@@ -194,11 +194,21 @@ For password reset to work properly, you need to configure Supabase:
      - Development: `http://localhost:5173/auth/reset`
      - Production: `https://yourdomain.com/auth/reset`
 
-3. **Email Templates**:
+3. **Email Templates** (IMPORTANT):
    - Go to Authentication > Email Templates
    - Select the "Reset Password" template
-   - Ensure the link uses: `{{ .SiteURL }}/auth/reset`
-   - The default template should work, but verify it's not using a custom PKCE flow
+   - **Use the Supabase confirmation URL variable**, not a hardcoded link
+   - Replace the link in the template with: `{{ .ConfirmationURL }}`
+   - **DO NOT** use just `https://yourdomain.com/auth/reset` - this removes the token!
+   - The confirmation URL will automatically redirect to your configured redirect URL with the proper tokens
+
+   Example template:
+
+   ```html
+   <h2>Reset Password</h2>
+   <p>Follow this link to reset your password:</p>
+   <p><a href="{{ .ConfirmationURL }}">Reset Password</a></p>
+   ```
 
 4. **Environment Variables**:
    - Ensure `PUBLIC_APP_URL` is set correctly (see Environment section above)

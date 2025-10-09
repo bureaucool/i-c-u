@@ -168,6 +168,17 @@
 
 	{#if loading && !sessionEstablished && !err}
 		<p class="text-gray-600">Verifying reset link...</p>
+	{:else if err}
+		<div class="flex flex-col items-center gap-y-2">
+			<p class="text-center text-red-600">{err}</p>
+			<details class="text-left text-sm opacity-60">
+				<summary class="cursor-pointer">Debug Info</summary>
+				<pre class="mt-2 text-xs break-all whitespace-pre-wrap">URL: {typeof window !== 'undefined'
+						? window.location.href
+						: ''}</pre>
+			</details>
+			<a class="mt-2 underline" href="/">Back to home</a>
+		</div>
 	{:else if sessionEstablished && !msg}
 		<form class="flex w-full max-w-sm flex-col gap-y-2" onsubmit={handleSubmit}>
 			<input
@@ -195,13 +206,5 @@
 	{#if msg}
 		<p class="text-green-600">{msg}</p>
 		<a class="underline" href="/">Go to login</a>
-	{/if}
-
-	{#if err}
-		<p class="text-red-600">{err}</p>
-	{/if}
-
-	{#if !msg}
-		<a class="underline" href="/">Back to home</a>
 	{/if}
 </section>
