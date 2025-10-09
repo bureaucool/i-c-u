@@ -153,6 +153,7 @@ export const actions: Actions = {
 	},
 	removeMember: async ({ request, locals, cookies }) => {
 		const supabase = createSupabaseServer(cookies);
+		const admin = createSupabaseService();
 		if (!locals.user) return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const userId = Number(form.get('userId'));
@@ -166,6 +167,33 @@ export const actions: Actions = {
 			.eq('group_id', groupId as number)
 			.eq('user_id', userId);
 		if (error) return fail(500, { message: error.message });
+
+		// If the user is no longer a member of any group, delete their auth user and local row
+		const { data: remaining } = await supabase
+			.from('group_member')
+			.select('group_id')
+			.eq('user_id', userId);
+
+		if ((remaining ?? []).length === 0) {
+			// Fetch local user to get auth_user_id
+			const { data: u } = await supabase
+				.from('user')
+				.select('id, auth_user_id')
+				.eq('id', userId)
+				.maybeSingle();
+
+			const authId = (u as any)?.auth_user_id as string | undefined;
+			if (authId) {
+				try {
+					await admin.auth.admin.deleteUser(authId);
+				} catch (e) {
+					// ignore auth deletion errors; proceed to delete local row
+				}
+			}
+
+			// Delete local user row with service client (bypasses RLS)
+			await admin.from('user').delete().eq('id', userId);
+		}
 		return { ok: true };
 	}
 };
