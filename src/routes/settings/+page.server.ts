@@ -1,5 +1,6 @@
 import type { Actions, PageServerLoad } from './$types';
 import { createSupabaseServer } from '$lib/server/supabase';
+import { createSupabaseService } from '$lib/server/supabaseService';
 import { changePassword, createUserWithPassword } from '$lib/server/auth';
 import { fail } from '@sveltejs/kit';
 
@@ -106,23 +107,32 @@ export const actions: Actions = {
 	},
 	addMember: async ({ request, locals, cookies }) => {
 		const supabase = createSupabaseServer(cookies);
+		const admin = createSupabaseService();
 		if (!locals.user) return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '').trim();
 		const name = String((form.get('name') ?? '').toString().trim() || email.split('@')[0] || '');
-		const password = String(form.get('password') ?? '');
 		const groupId = locals.groupId;
-		if (!email || !password || !Number.isFinite(groupId)) return fail(400, { message: 'invalid' });
+		if (!email || !Number.isFinite(groupId)) return fail(400, { message: 'invalid' });
 
-		// Create user if not exists
+		// Send invite email via Admin API (confirmation link to /auth/confirmed)
+		const origin = new URL(request.url).origin;
+		const invite = await admin.auth.admin.inviteUserByEmail(email, {
+			redirectTo: `${origin}/auth/confirmed`,
+			data: { name }
+		});
+		// If user already exists, invite may error; proceed to ensure local rows
+
+		// Ensure local user row exists
 		let { data: u } = await supabase.from('user').select('*').eq('email', email).maybeSingle();
 		if (!u) {
-			u = (await createUserWithPassword(name, email, password, cookies)) as any;
-		} else {
-			// ensure has password
-			if (!(u as any).password_hash) {
-				await changePassword((u as any).id, password, cookies);
-			}
+			const { data: created, error: cErr } = await supabase
+				.from('user')
+				.insert({ name, email })
+				.select()
+				.single();
+			if (cErr) return fail(500, { message: cErr.message });
+			u = created as any;
 		}
 
 		// add membership if not present
