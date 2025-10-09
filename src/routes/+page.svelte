@@ -146,8 +146,10 @@
 
 {#if !data.user}
 	<section class="flex h-full w-full flex-col items-center justify-center gap-y-5 text-center">
-		<h2 class="text-3xl">i-c-u</h2>
-		<p>Collaborative task manager, focused on appreciation and balance</p>
+		<h2 class="font-script text-6xl">I c u</h2>
+		<p class="leading-tight">
+			Collaborative task manager,<br />focused on appreciation and balance
+		</p>
 	</section>
 
 	{#if loginOpen}

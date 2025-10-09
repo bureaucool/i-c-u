@@ -116,9 +116,10 @@
 			class="pointer-events-none absolute opacity-0"
 		/>
 		<canvas bind:this={canvas}></canvas>
+		<span class="absolute bottom-0 left-0 -translate-x-full text-xs">You</span>
 	</div>
 	<span
-		class="relative -top-3 z-20 block text-center text-4xl leading-none mix-blend-soft-light select-none"
+		class="relative -top-3 z-20 block text-center font-script text-6xl leading-none mix-blend-soft-light select-none"
 		>{title}</span
 	>
 </div>

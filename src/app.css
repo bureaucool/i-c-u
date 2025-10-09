@@ -5,6 +5,10 @@
 	--font-sans-weight: 600;
 	--font-sans-style: normal;
 
+	--font-script: 'sloop-script-pro', sans-serif;
+	--font-script-weight: 700;
+	--font-script-style: normal;
+
 	--animate-twinkle: twinkle 0.5s 3s ease-in-out;
 	@keyframes twinkle {
 		0%,
