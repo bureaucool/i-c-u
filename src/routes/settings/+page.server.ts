@@ -116,9 +116,10 @@ export const actions: Actions = {
 		if (!email || !Number.isFinite(groupId)) return fail(400, { message: 'invalid' });
 
 		// Send invite email via Admin API (confirmation link to /auth/confirmed)
-		const origin = new URL(request.url).origin;
+		const appBase =
+			(globalThis as any).PUBLIC_APP_URL ?? process.env.PUBLIC_APP_URL ?? 'http://localhost:5173';
 		const invite = await admin.auth.admin.inviteUserByEmail(email, {
-			redirectTo: `${origin}/auth/confirmed`,
+			redirectTo: `${appBase}/auth/confirmed`,
 			data: { name }
 		});
 		// If user already exists, invite may error; proceed to ensure local rows

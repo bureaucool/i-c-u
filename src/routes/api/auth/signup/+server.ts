@@ -2,8 +2,9 @@ import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import { createServerClient } from '@supabase/ssr';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import { PUBLIC_APP_URL } from '$env/static/public';
 
-export const POST: RequestHandler = async ({ request, cookies, url }) => {
+export const POST: RequestHandler = async ({ request, cookies }) => {
 	const body = await request.json().catch(() => ({}) as Record<string, unknown>);
 	const email = typeof body.email === 'string' ? body.email.trim() : '';
 	const password = typeof body.password === 'string' ? body.password : '';
@@ -18,12 +19,13 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 		}
 	});
 
-const redirectTo = new URL('/auth/confirmed', url.origin).toString();
-const { data, error: authErr } = await supabase.auth.signUp({
+	const appBase = PUBLIC_APP_URL || 'http://localhost:5173';
+	const redirectTo = `${appBase}/auth/confirmed`;
+	const { data, error: authErr } = await supabase.auth.signUp({
 		email,
 		password,
 		options: { data: { name }, emailRedirectTo: redirectTo }
-});
+	});
 	if (authErr || !data.user) throw error(400, authErr?.message || 'sign up failed');
 
 	// ensure local user row exists
