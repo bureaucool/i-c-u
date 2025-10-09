@@ -54,6 +54,28 @@
 								{/each}
 							</ul>
 						</div>
+						<div class="flex items-center gap-3">
+							<form
+								onsubmit={async (e) => {
+									e.preventDefault();
+									if (
+										!confirm(
+											`Delete group "${g.title}"? This also removes users who only belong to this group.`
+										)
+									)
+										return;
+									msg = err = null;
+									const form = new FormData(e.currentTarget as HTMLFormElement);
+									const res = await fetch('?/deleteGroup', { method: 'POST', body: form });
+									if (res.ok) msg = 'Group deleted';
+									else err = 'Failed to delete group';
+									if (res.ok) location.reload();
+								}}
+							>
+								<input type="hidden" name="groupId" value={g.id} />
+								<Button type="submit" red={true}>Delete group</Button>
+							</form>
+						</div>
 						<form
 							class="flex flex-col"
 							onsubmit={async (e) => {

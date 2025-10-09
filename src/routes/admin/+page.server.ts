@@ -72,5 +72,61 @@ export const actions: Actions = {
 			if (gmErr) return fail(500, { message: gmErr.message });
 		}
 		return { ok: true };
+	},
+	deleteGroup: async ({ request, locals, cookies }) => {
+		const supabase = createSupabaseServer(cookies);
+		if (!locals.user || locals.user.email !== ADMIN_EMAIL)
+			return fail(401, { message: 'unauthorized' });
+		const form = await request.formData();
+		const groupId = Number(form.get('groupId'));
+		if (!Number.isFinite(groupId)) return fail(400, { message: 'invalid' });
+
+		// Determine orphan users before deleting memberships
+		const { data: members, error: memErr } = await supabase
+			.from('group_member')
+			.select('user_id, group_id')
+			.eq('group_id', groupId);
+		if (memErr) return fail(500, { message: memErr.message });
+		const memberUserIds = Array.from(new Set((members ?? []).map((m: any) => m.user_id)));
+
+		let orphanUserIds: number[] = [];
+		if (memberUserIds.length > 0) {
+			const { data: allMemberships, error: allErr } = await supabase
+				.from('group_member')
+				.select('user_id, group_id')
+				.in('user_id', memberUserIds as number[]);
+			if (allErr) return fail(500, { message: allErr.message });
+			const counts = new Map<number, number>();
+			for (const row of allMemberships ?? []) {
+				const uid = (row as any).user_id as number;
+				counts.set(uid, (counts.get(uid) ?? 0) + 1);
+			}
+			for (const uid of memberUserIds) {
+				if ((counts.get(uid) ?? 0) === 1) {
+					orphanUserIds.push(uid);
+				}
+			}
+		}
+
+		// Best-effort clean-up of dependent rows (in case FKs are not cascading)
+		await supabase.from('invite').delete().eq('group_id', groupId);
+		await supabase.from('treat').delete().eq('group_id', groupId);
+		await supabase.from('task').delete().eq('group_id', groupId);
+		await supabase.from('group_member').delete().eq('group_id', groupId);
+
+		const { error: delErr } = await supabase.from('group').delete().eq('id', groupId);
+		if (delErr) return fail(500, { message: delErr.message });
+
+		if (orphanUserIds.length > 0) {
+			const { error: delUsersErr } = await supabase.from('user').delete().in('id', orphanUserIds);
+			if (delUsersErr) return fail(500, { message: delUsersErr.message });
+		}
+
+		const gidCookie = cookies.get('gid');
+		if (gidCookie && String(groupId) === gidCookie) {
+			cookies.delete('gid', { path: '/' });
+		}
+
+		return { ok: true };
 	}
 };
