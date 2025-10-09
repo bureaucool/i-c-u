@@ -27,8 +27,6 @@
 		};
 	} = $props();
 
-	$inspect(data);
-
 	let showAdd = $state(false);
 	let formType: 'task' | 'treat' = $state('task');
 	let loginMsg = $state<string | null>(null);
@@ -53,7 +51,12 @@
 
 	let loginOpen = $state(false);
 	let signupOpen = $state(false);
-	let createGroupOpen = $state(false);
+
+	$effect(() => {
+		if (!showAdd) {
+			formType = 'task';
+		}
+	});
 
 	// Auto-open login from confirmation redirect
 	$effect(() => {

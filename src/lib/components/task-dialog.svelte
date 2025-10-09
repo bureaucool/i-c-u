@@ -52,6 +52,7 @@
 	let foundEmojis = $state<Array<{ emoji?: string; character?: string }>>([]);
 
 	let showPicker = $state(false);
+	let showEmojiField = $state(false);
 
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
@@ -79,7 +80,7 @@
 	{/if}
 {/if}
 <form onsubmit={submit} class="flex flex-col items-center gap-y-10">
-	<div class="flex flex-col items-center gap-y-5">
+	<div class="flex flex-col items-center gap-y-5" class:hidden={!showEmojiField}>
 		<div class="flex h-20 w-20 items-center justify-center rounded-full border border-white/20 p-2">
 			<input
 				class="w-full text-center text-3xl"
@@ -126,7 +127,7 @@
 			/>
 		{/if}
 	</div>
-	<div class="flex flex-col gap-y-0">
+	<div class="flex w-full flex-col gap-y-0">
 		<span>Title</span>
 		<input
 			class="w-full text-3xl"
@@ -136,10 +137,12 @@
 			disabled={mode === 'duplicate' && task != null}
 			onblur={async () => {
 				if (!task && title.trim().length > 0) {
+					showEmojiField = true;
 					const tempEmoji = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`);
 					if (tempEmoji.ok) {
 						const tempEmojiData = await tempEmoji.json();
 						foundEmojis = tempEmojiData;
+						emoji = tempEmojiData[0].emoji || tempEmojiData[0].character || '';
 					}
 				}
 			}}

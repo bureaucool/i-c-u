@@ -18,6 +18,22 @@
 	} = $props();
 
 	const userById = new Map(users.map((u) => [u.id, u] as const));
+
+	function formatScheduledDate(timestamp: number): string {
+		const date = new Date(timestamp);
+		const day = String(date.getDate()).padStart(2, '0');
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const year = String(date.getFullYear());
+		const hours = date.getHours();
+		const minutes = date.getMinutes();
+		const base = `${day}.${month}.${year}`;
+		if (hours !== 0 || minutes !== 0) {
+			const hh = String(hours).padStart(2, '0');
+			const mm = String(minutes).padStart(2, '0');
+			return `${base} ${hh}:${mm}`;
+		}
+		return base;
+	}
 </script>
 
 <div class="flex flex-row items-center gap-x-1">
@@ -39,7 +55,7 @@
 		<div class="">
 			<div class="pl-1">
 				{#if task.scheduledAt}
-					<span>{new Date(task.scheduledAt).toLocaleDateString()}</span>
+					<span>{formatScheduledDate(task.scheduledAt)}</span>
 				{/if}
 				{#if task.assignedUserId != null}
 					<span class="rounded-full bg-neutral-200 px-3 py-0.25 leading-none"
