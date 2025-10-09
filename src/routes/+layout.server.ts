@@ -1,19 +1,13 @@
 import type { LayoutServerLoad } from './$types';
-import { db } from '$lib/server/db';
-import { group, groupMember, task, user } from '$lib/server/db/schema';
-import { and, eq, isNotNull, gte, lte, inArray } from 'drizzle-orm';
+import { createSupabaseServer } from '$lib/server/supabase';
 
-export const load: LayoutServerLoad = async ({ locals, url }) => {
+export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	let activeGroup: { id: number; title: string } | null = null;
 	const gid = locals.groupId;
 	if (locals.user && gid) {
-		const [g] = await db
-			.select({ id: group.id, title: group.title })
-			.from(groupMember)
-			.innerJoin(group, eq(groupMember.groupId, group.id))
-			.where(and(eq(groupMember.userId, locals.user.id), eq(groupMember.groupId, gid)))
-			.limit(1);
-		activeGroup = g ?? null;
+		const { data: g } = await supabase.from('group').select('id,title').eq('id', gid).maybeSingle();
+		activeGroup = (g as any) ?? null;
 	}
 
 	// Global availability-adjusted percentages over a range (7 or 30 days)
@@ -25,40 +19,42 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		const now = Date.now();
 		const from = now - rangeDays * 24 * 60 * 60 * 1000;
 
-		const tasksInRange = await db
-			.select()
-			.from(task)
-			.where(
-				and(
-					eq(task.groupId, gid),
-					isNotNull(task.completedAt),
-					gte(task.completedAt, from),
-					lte(task.completedAt, now)
-				)
-			);
+		const { data: tasksInRange } = await supabase
+			.from('task')
+			.select('*')
+			.eq('group_id', gid)
+			.not('completed_at', 'is', null)
+			.gte('completed_at', from)
+			.lte('completed_at', now);
 
 		const youId = locals.user.id;
-		const youMinutes = tasksInRange
-			.filter((t) => t.assignedUserId === youId)
-			.reduce((acc, t) => acc + (Number((t as any).durationMinutes ?? 0) || 0), 0);
-		const othersMinutes = tasksInRange
-			.filter((t) => t.assignedUserId == null || t.assignedUserId !== youId)
-			.reduce((acc, t) => acc + (Number((t as any).durationMinutes ?? 0) || 0), 0);
+		const youMinutes = (tasksInRange as any[])
+			.filter((t: any) => t.assigned_user_id === youId)
+			.reduce((acc: number, t: any) => acc + (Number(t?.duration_minutes ?? 0) || 0), 0);
+		const othersMinutes = (tasksInRange as any[])
+			.filter((t: any) => t.assigned_user_id == null || t.assigned_user_id !== youId)
+			.reduce((acc: number, t: any) => acc + (Number(t?.duration_minutes ?? 0) || 0), 0);
 
 		// Availability sums
-		const memberIds = await db
-			.select({ userId: groupMember.userId })
-			.from(groupMember)
-			.where(eq(groupMember.groupId, gid));
-		const ids = memberIds.map((m) => m.userId);
-		const groupUsers = ids.length ? await db.select().from(user).where(inArray(user.id, ids)) : [];
+		const { data: memberIds } = await supabase
+			.from('group_member')
+			.select('user_id')
+			.eq('group_id', gid);
+		const ids = (memberIds ?? []).map((m: any) => m.user_id);
+		const { data: groupUsers } = ids.length
+			? await supabase.from('user').select('*').in('id', ids)
+			: ({ data: [] } as any);
 
 		const youAvail =
-			Number((groupUsers.find((u) => u.id === youId) as any)?.availableTimeMinutesPerWeek ?? 0) ||
-			0;
-		const othersAvail = groupUsers
-			.filter((u) => u.id !== youId)
-			.reduce((acc, u: any) => acc + (Number(u?.availableTimeMinutesPerWeek ?? 0) || 0), 0);
+			Number(
+				(groupUsers as any[]).find((u: any) => u.id === youId)?.available_time_minutes_per_week ?? 0
+			) || 0;
+		const othersAvail = (groupUsers as any[])
+			.filter((u: any) => u.id !== youId)
+			.reduce(
+				(acc: number, u: any) => acc + (Number(u?.available_time_minutes_per_week ?? 0) || 0),
+				0
+			);
 
 		const youNorm = youAvail > 0 ? youMinutes / youAvail : 0;
 		const othersNorm = othersAvail > 0 ? othersMinutes / othersAvail : 0;

@@ -1,10 +1,9 @@
 import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { user } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseServer } from '$lib/server/supabase';
 
-export const PATCH: RequestHandler = async ({ params, request }) => {
+export const PATCH: RequestHandler = async ({ params, request, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	const id = Number(params.id);
 	if (!Number.isFinite(id)) throw error(400, 'invalid id');
 
@@ -16,11 +15,17 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	const updates: Record<string, unknown> = {};
 	if (name !== undefined) updates.name = name;
 	if (availableTimeMinutesPerWeek !== undefined)
-		updates.availableTimeMinutesPerWeek = availableTimeMinutesPerWeek;
+		updates.available_time_minutes_per_week = availableTimeMinutesPerWeek;
 
 	if (Object.keys(updates).length === 0) return json({});
 
-	const [updated] = await db.update(user).set(updates).where(eq(user.id, id)).returning();
+	const { data: updated, error: uErr } = await supabase
+		.from('user')
+		.update(updates)
+		.eq('id', id)
+		.select()
+		.single();
+	if (uErr) throw error(500, uErr.message);
 	if (!updated) throw error(404, 'user not found');
 	return json(updated);
 };

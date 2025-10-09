@@ -1,10 +1,9 @@
 import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { group, groupMember } from '$lib/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { createSupabaseServer } from '$lib/server/supabase';
 
-export const PATCH: RequestHandler = async ({ params, request }) => {
+export const PATCH: RequestHandler = async ({ params, request, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	const id = Number(params.id);
 	if (!Number.isFinite(id)) throw error(400, 'invalid id');
 
@@ -16,24 +15,33 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 	if (Object.keys(updates).length === 0) return json({});
 
-	const [updated] = await db.update(group).set(updates).where(eq(group.id, id)).returning();
+	const { data: updated, error: uErr } = await supabase
+		.from('group')
+		.update(updates)
+		.eq('id', id)
+		.select()
+		.single();
+	if (uErr) throw error(500, uErr.message);
 	if (!updated) throw error(404, 'group not found');
 	return json(updated);
 };
 
-export const DELETE: RequestHandler = async ({ params, locals }) => {
+export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	const id = Number(params.id);
 	if (!Number.isFinite(id)) throw error(400, 'invalid id');
 	if (!locals.user) throw error(401, 'unauthorized');
 
 	// Ensure the requester is a member of the group
-	const [m] = await db
-		.select()
-		.from(groupMember)
-		.where(and(eq(groupMember.groupId, id), eq(groupMember.userId, locals.user.id)))
-		.limit(1);
+	const { data: m } = await supabase
+		.from('group_member')
+		.select('user_id')
+		.eq('group_id', id)
+		.eq('user_id', locals.user.id)
+		.maybeSingle();
 	if (!m) throw error(403, 'not a member of this group');
 
-	await db.delete(group).where(eq(group.id, id)).run();
+	const { error: dErr } = await supabase.from('group').delete().eq('id', id);
+	if (dErr) throw error(500, dErr.message);
 	return new Response(null, { status: 204 });
 };

@@ -1,21 +1,23 @@
 import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { treat, group, user, groupMember } from '$lib/server/db/schema';
-import { eq, and } from 'drizzle-orm';
 import { getEmojiForTitle } from '$lib/server/emoji';
+import { createSupabaseServer } from '$lib/server/supabase';
 
-export const GET: RequestHandler = async ({ url, locals }) => {
+export const GET: RequestHandler = async ({ url, locals, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	const groupIdParam = url.searchParams.get('groupId');
 	const groupId = groupIdParam ? Number(groupIdParam) : (locals.groupId ?? undefined);
 	if (groupId !== undefined && !Number.isFinite(groupId)) throw error(400, 'invalid groupId');
 
-	const query = db.select().from(treat);
-	const rows = await (groupId ? query.where(eq(treat.groupId, groupId)) : query);
-	return json(rows);
+	let q = supabase.from('treat').select('*');
+	if (groupId != null) q = q.eq('group_id', groupId);
+	const { data, error: err } = await q;
+	if (err) throw error(500, err.message);
+	return json(data ?? []);
 };
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async ({ request, locals, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	const body = await request.json().catch(() => ({}) as Record<string, unknown>);
 	const title = typeof body.title === 'string' ? body.title.trim() : '';
 	const groupId =
@@ -31,48 +33,64 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!Number.isFinite(valueMinutes)) throw error(400, 'valueMinutes is required');
 
 	// validate group and users
-	const [g] = await db.select().from(group).where(eq(group.id, groupId)).limit(1);
+	const { data: g, error: gErr } = await supabase
+		.from('group')
+		.select('id')
+		.eq('id', groupId)
+		.maybeSingle();
+	if (gErr) throw error(500, gErr.message);
 	if (!g) throw error(404, 'group not found');
 
-	const [fu] = await db
-		.select()
-		.from(user)
-		.where(eq(user.id, fromUserId as number))
-		.limit(1);
+	const { data: fu, error: fuErr } = await supabase
+		.from('user')
+		.select('id')
+		.eq('id', fromUserId as number)
+		.maybeSingle();
+	if (fuErr) throw error(500, fuErr.message);
 	if (!fu) throw error(404, 'from user not found');
-	const [tu] = await db.select().from(user).where(eq(user.id, toUserId)).limit(1);
+	const { data: tu, error: tuErr } = await supabase
+		.from('user')
+		.select('id')
+		.eq('id', toUserId)
+		.maybeSingle();
+	if (tuErr) throw error(500, tuErr.message);
 	if (!tu) throw error(404, 'to user not found');
 
 	// ensure creator is in the group
-	const [fm] = await db
-		.select()
-		.from(groupMember)
-		.where(and(eq(groupMember.groupId, groupId), eq(groupMember.userId, fromUserId)))
-		.limit(1);
+	const { data: fm, error: fmErr } = await supabase
+		.from('group_member')
+		.select('user_id')
+		.eq('group_id', groupId)
+		.eq('user_id', fromUserId)
+		.maybeSingle();
+	if (fmErr) throw error(500, fmErr.message);
 	if (!fm) throw error(400, 'from user not in group');
 	// ensure recipient is in the group as well
-	const [tm] = await db
-		.select()
-		.from(groupMember)
-		.where(and(eq(groupMember.groupId, groupId), eq(groupMember.userId, toUserId)))
-		.limit(1);
+	const { data: tm, error: tmErr } = await supabase
+		.from('group_member')
+		.select('user_id')
+		.eq('group_id', groupId)
+		.eq('user_id', toUserId)
+		.maybeSingle();
+	if (tmErr) throw error(500, tmErr.message);
 	if (!tm) throw error(400, 'to user not in group');
 
 	const emoji = await getEmojiForTitle(title);
 
-	const [created] = await db
-		.insert(treat)
-		.values({
+	const { data: created, error: cErr } = await supabase
+		.from('treat')
+		.insert({
 			title,
-			groupId,
+			group_id: groupId,
 			emoji: emoji ?? null,
-			fromUserId,
-			toUserId,
-			valueMinutes,
+			from_user_id: fromUserId,
+			to_user_id: toUserId,
+			value_minutes: valueMinutes,
 			accepted: false,
-			createdAt: Date.now()
+			created_at: Date.now()
 		})
-		.returning();
-
+		.select()
+		.single();
+	if (cErr) throw error(500, cErr.message);
 	return json(created, { status: 201 });
 };

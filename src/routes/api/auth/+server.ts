@@ -1,36 +1,59 @@
 import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
-import { createSession, destroySession, verifyPassword } from '$lib/server/auth';
-import { db } from '$lib/server/db';
-import { groupMember } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { createServerClient } from '@supabase/ssr';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	const body = await request.json().catch(() => ({}) as Record<string, unknown>);
 	const email = typeof body.email === 'string' ? body.email.trim() : '';
 	const password = typeof body.password === 'string' ? body.password : '';
 	if (!email || !password) throw error(400, 'email and password required');
-	const u = await verifyPassword(email, password);
-	if (!u) throw error(401, 'invalid credentials');
-	const { sid, expiresAt } = await createSession(u.id);
-	cookies.set('sid', sid, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 });
+
+	const supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		cookies: {
+			get: (key) => cookies.get(key),
+			set: (key, value, options) => cookies.set(key, value, { path: '/', ...options }),
+			remove: (key, options) => cookies.delete(key, { path: '/', ...options })
+		}
+	});
+
+	const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
+	if (authErr || !data.user) throw error(401, authErr?.message || 'invalid credentials');
+
+	// create local user row if missing
+	const { data: existing } = await supabase
+		.from('user')
+		.select('*')
+		.eq('email', email)
+		.maybeSingle();
+	if (!existing) {
+		await supabase.from('user').insert({ name: email.split('@')[0] || email, email });
+	}
 
 	// If user has exactly one group, set it as active
 	try {
-		const groups = await db
-			.select({ groupId: groupMember.groupId })
-			.from(groupMember)
-			.where(eq(groupMember.userId, u.id));
-		if (groups.length === 1) {
-			cookies.set('gid', String(groups[0].groupId), { path: '/', sameSite: 'lax' });
+		const { data: u } = await supabase.from('user').select('*').eq('email', email).maybeSingle();
+		if (u) {
+			const { data: groups } = await supabase
+				.from('group_member')
+				.select('group_id')
+				.eq('user_id', (u as any).id);
+			if ((groups ?? []).length === 1) {
+				cookies.set('gid', String((groups as any)[0].group_id), { path: '/', sameSite: 'lax' });
+			}
 		}
 	} catch {}
-	return json({ ok: true, userId: u.id, expiresAt });
+	return json({ ok: true });
 };
 
 export const DELETE: RequestHandler = async ({ cookies }) => {
-	const sid = cookies.get('sid');
-	if (sid) await destroySession(sid);
-	cookies.delete('sid', { path: '/' });
+	const supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		cookies: {
+			get: (key) => cookies.get(key),
+			set: (key, value, options) => cookies.set(key, value, { path: '/', ...options }),
+			remove: (key, options) => cookies.delete(key, { path: '/', ...options })
+		}
+	});
+	await supabase.auth.signOut();
 	return json({ ok: true });
 };

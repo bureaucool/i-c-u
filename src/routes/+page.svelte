@@ -23,13 +23,18 @@
 			completedTasks?: Task[];
 			users?: User[];
 			pendingTreats?: import('$lib/types').Treat[];
+			groupId?: number | null;
 		};
 	} = $props();
+
+	$inspect(data);
 
 	let showAdd = $state(false);
 	let formType: 'task' | 'treat' = $state('task');
 	let loginMsg = $state<string | null>(null);
 	let loginErr = $state<string | null>(null);
+	let signupMsg = $state<string | null>(null);
+	let signupErr = $state<string | null>(null);
 	let addMsg = $state<string | null>(null);
 	let addErr = $state<string | null>(null);
 	// Floating treat accept flow state
@@ -47,6 +52,15 @@
 	}
 
 	let loginOpen = $state(false);
+	let signupOpen = $state(false);
+	let createGroupOpen = $state(false);
+
+	// Auto-open login from confirmation redirect
+	$effect(() => {
+		if ((data as any).showLogin) {
+			loginOpen = true;
+		}
+	});
 
 	// Overlays for complete/edit
 	let completeOpen = $state(false);
@@ -119,7 +133,7 @@
 {#if data.user}
 	<div class="pointer-events-none fixed inset-0 top-3 z-40">
 		<div class="mx-auto flex max-w-xl justify-end px-7">
-			<a href="/settings" class="pointer-events-auto p-3"
+			<a href="/settings" aria-label="Settings" class="pointer-events-auto p-3"
 				><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
 			>
 		</div>
@@ -133,7 +147,14 @@
 	</section>
 
 	{#if loginOpen}
-		<div class="fixed inset-0 z-10 h-full w-full" onclick={() => (loginOpen = false)}></div>
+		<div
+			class="fixed inset-0 z-10 h-full w-full"
+			role="button"
+			tabindex="0"
+			aria-label="Close login dialog"
+			onclick={() => (loginOpen = false)}
+			onkeydown={(e) => (e.key === 'Escape' ? (loginOpen = false) : null)}
+		></div>
 		<div class="fixed top-3 right-3 z-20 rounded-xl bg-white p-3">
 			<div class="flex flex-col gap-y-2">
 				<form
@@ -166,15 +187,103 @@
 				{#if loginErr}<p>{loginErr}</p>{/if}
 			</div>
 		</div>
+	{:else if signupOpen}
+		<div
+			class="fixed inset-0 z-10 h-full w-full"
+			role="button"
+			tabindex="0"
+			aria-label="Close signup dialog"
+			onclick={() => (signupOpen = false)}
+			onkeydown={(e) => (e.key === 'Escape' ? (signupOpen = false) : null)}
+		></div>
+		<div class="fixed top-3 right-3 z-20 rounded-xl bg-white p-3">
+			<div class="flex flex-col gap-y-2">
+				<form
+					class="flex flex-col gap-y-2"
+					onsubmit={async (e) => {
+						e.preventDefault();
+						signupMsg = signupErr = null;
+						const form = new FormData(e.currentTarget as HTMLFormElement);
+						const body = Object.fromEntries(form.entries());
+						const password = String((body as any).password ?? '');
+						const confirm = String((body as any).confirmPassword ?? '');
+						if (password.length < 8) {
+							signupErr = 'Password must be at least 8 characters';
+							return;
+						}
+						if (password !== confirm) {
+							signupErr = 'Passwords do not match';
+							return;
+						}
+						const res = await fetch('/api/auth/signup', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(body)
+						});
+						if (res.ok) {
+							signupMsg = 'Signed up. Check your email if confirmation is required, then log in.';
+						} else {
+							const err = await res.json().catch(() => ({}));
+							signupErr = err?.error || err?.message || 'Sign up failed';
+						}
+					}}
+				>
+					<input name="name" type="text" placeholder="Name" />
+					<input name="email" type="email" placeholder="Email" required />
+					<input
+						name="password"
+						type="password"
+						placeholder="Password (min 8 chars)"
+						minlength="8"
+						required
+					/>
+					<input
+						name="confirmPassword"
+						type="password"
+						placeholder="Confirm password"
+						minlength="8"
+						required
+					/>
+					<button type="submit">Sign up</button>
+				</form>
+				{#if signupMsg}<p>{signupMsg}</p>{/if}
+				{#if signupErr}<p>{signupErr}</p>{/if}
+			</div>
+		</div>
 	{:else}
 		<div class="fixed top-3 right-3">
 			<div class="flex flex-col gap-y-2">
 				<button onclick={() => (loginOpen = true)}>Log in</button>
+				<button onclick={() => (signupOpen = true)}>Sign up</button>
 			</div>
 		</div>
 	{/if}
 {:else}
 	<section class="relative flex flex-col gap-y-10">
+		{#if !data.groupId}
+			<div class="rounded-xl bg-white p-4">
+				<h3 class="mb-2 text-xl">Create your first group</h3>
+				<form
+					class="flex flex-row gap-x-2"
+					onsubmit={async (e) => {
+						e.preventDefault();
+						const form = new FormData(e.currentTarget as HTMLFormElement);
+						const res = await fetch('/api/groups', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ title: String(form.get('title') ?? '').trim() })
+						});
+						if (res.ok) {
+							await invalidateAll();
+						}
+					}}
+				>
+					<input name="title" type="text" placeholder="Group title" required />
+					<button type="submit">Create</button>
+				</form>
+			</div>
+		{/if}
+
 		{#if (data.pendingTreats ?? []).length > 0}
 			{#each data.pendingTreats ?? [] as tr}
 				<Floating classes="z-50">

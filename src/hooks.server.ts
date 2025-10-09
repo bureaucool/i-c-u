@@ -1,31 +1,55 @@
 import type { Handle } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { session, user, groupMember } from '$lib/server/db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { createServerClient } from '@supabase/ssr';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	const sid = event.cookies.get('sid');
+	// Supabase SSR client for auth cookies handling
+	const supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		cookies: {
+			get: (key) => event.cookies.get(key),
+			set: (key, value, options) => event.cookies.set(key, value, { path: '/', ...options }),
+			remove: (key, options) => event.cookies.delete(key, { path: '/', ...options })
+		}
+	});
+
+	const {
+		data: { user: sbUser }
+	} = await supabase.auth.getUser();
+
 	let currentUser: { id: number; name: string; email: string } | null = null;
 	let currentGroupId: number | null = null;
-	if (sid) {
-		const [s] = await db.select().from(session).where(eq(session.id, sid)).limit(1);
-		if (s && s.expiresAt > Date.now()) {
-			const [u] = await db.select().from(user).where(eq(user.id, s.userId)).limit(1);
-			if (u) currentUser = { id: u.id, name: u.name, email: u.email };
-		}
+	if (sbUser?.email) {
+		const { data: u } = await supabase
+			.from('user')
+			.select('*')
+			.eq('email', sbUser.email)
+			.maybeSingle();
+		if (u) currentUser = { id: u.id, name: u.name, email: u.email } as any;
 	}
 
-	// choose group from cookie if set, otherwise default to first membership
+	// choose group from cookie if valid membership; otherwise default to first membership
 	const gid = event.cookies.get('gid');
-	if (gid && /^\d+$/.test(gid)) {
-		currentGroupId = Number(gid);
+	if (gid && /^\d+$/.test(gid) && currentUser) {
+		const groupIdNum = Number(gid);
+		const { data: membership } = await supabase
+			.from('group_member')
+			.select('user_id')
+			.eq('group_id', groupIdNum)
+			.eq('user_id', currentUser.id)
+			.maybeSingle();
+		if (membership) {
+			currentGroupId = groupIdNum;
+		} else {
+			// stale cookie: clear it
+			event.cookies.delete('gid', { path: '/' });
+		}
 	} else if (currentUser) {
-		const memberships = await db
-			.select()
-			.from(groupMember)
-			.where(eq(groupMember.userId, currentUser.id));
-		if (memberships.length > 0) {
-			currentGroupId = memberships[0].groupId;
+		const { data: memberships } = await supabase
+			.from('group_member')
+			.select('group_id')
+			.eq('user_id', currentUser.id);
+		if ((memberships ?? []).length > 0) {
+			currentGroupId = (memberships as any)[0].group_id as number;
 			// persist cookie so subsequent requests are consistent
 			event.cookies.set('gid', String(currentGroupId), { path: '/', sameSite: 'lax' });
 		}

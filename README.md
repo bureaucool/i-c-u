@@ -15,7 +15,8 @@ pnpm run dev
 Define these variables in `.env`:
 
 ```
-DATABASE_URL="file:./local.db"          # libsql/sqlite URL
+PUBLIC_SUPABASE_URL="https://<your-project>.supabase.co"
+PUBLIC_SUPABASE_ANON_KEY="<your-anon-key>"
 EMOJI_API_ACCESS_KEY="<your-emoji-api-key>"
 ```
 
@@ -23,18 +24,9 @@ Emoji API used: [`emoji-api.com`](https://emoji-api.com/emojis?search=computer&a
 
 ## Database
 
-Drizzle ORM with SQLite/libSQL.
+Supabase Postgres with Realtime and RLS. Manage schema using Supabase migrations (CLI/Studio).
 
-Commands:
-
-```sh
-pnpm db:generate  # generate SQL from schema
-pnpm db:push      # apply schema to database
-pnpm db:migrate   # run generated migrations
-pnpm db:studio    # open Drizzle Studio
-```
-
-Schema lives in `src/lib/server/db/schema.ts` and defines:
+Schema defines:
 
 - `user`: `id`, `name`, `email` (unique), `availableTimeMinutesPerWeek`
 - `group`: `id`, `title`
@@ -167,13 +159,13 @@ pnpm run check
 
 ## Authentication & Admin
 
-- Sessions are stored in the `session` table and set via the `sid` cookie.
-- Users have a `passwordHash` field (placeholder hashing in dev; replace with a real hasher).
+- Auth via Supabase; SSR in `hooks.server.ts` using `@supabase/ssr`.
+- Users may have a `password_hash` when using local password auth flows.
 
 Endpoints:
 
-- `POST /api/auth` — body: `{ "email": string, "password": string }` — sets session cookie
-- `DELETE /api/auth` — logs out, clears session cookie
+- `POST /api/auth` — body: `{ "email": string, "password": string }` — signs in via Supabase
+- `DELETE /api/auth` — signs out
 
 Routes:
 

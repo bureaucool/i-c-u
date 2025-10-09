@@ -5,6 +5,8 @@
 	import { page } from '$app/state';
 	import { fade } from 'svelte/transition';
 	import { percentages, rangeDays } from '$lib/stores/states';
+	import { createSupabaseBrowser } from '$lib';
+	import { invalidateAll } from '$app/navigation';
 
 	let {
 		children,
@@ -27,6 +29,38 @@
 		percentages.set(data.globalAdjustedPercentages ?? [0, 0]);
 		rangeDays.set(data.rangeDays ?? 7);
 	});
+
+	// Realtime: listen for changes to tasks and treats and invalidate
+	if (data.user && data.groupId) {
+		const supabase = createSupabaseBrowser();
+
+		let invalidateTimer: number | null = null;
+		function scheduleInvalidate() {
+			if (invalidateTimer != null) return;
+			invalidateTimer = setTimeout(async () => {
+				invalidateTimer = null;
+				await invalidateAll();
+			}, 200) as unknown as number;
+		}
+		const channel = supabase
+			.channel('db-changes')
+			.on(
+				'postgres_changes',
+				{ event: '*', schema: 'public', table: 'task', filter: `group_id=eq.${data.groupId}` },
+				scheduleInvalidate
+			)
+			.on(
+				'postgres_changes',
+				{ event: '*', schema: 'public', table: 'treat', filter: `group_id=eq.${data.groupId}` },
+				scheduleInvalidate
+			)
+			.subscribe();
+
+		$effect(() => () => {
+			supabase.removeChannel(channel);
+			if (invalidateTimer != null) clearTimeout(invalidateTimer as unknown as number);
+		});
+	}
 </script>
 
 <svelte:head>

@@ -1,10 +1,9 @@
 import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { task } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseServer } from '$lib/server/supabase';
 
-export const PATCH: RequestHandler = async ({ params, request, locals }) => {
+export const PATCH: RequestHandler = async ({ params, request, locals, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	const id = Number(params.id);
 	if (!Number.isFinite(id)) throw error(400, 'invalid id');
 
@@ -34,38 +33,56 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const updates: Record<string, unknown> = {};
 
 	// Load existing to decide completion semantics
-	const [existing] = await db.select().from(task).where(eq(task.id, id)).limit(1);
+	const { data: existing, error: eErr } = await supabase
+		.from('task')
+		.select('*')
+		.eq('id', id)
+		.maybeSingle();
+	if (eErr) throw error(500, eErr.message);
 	if (!existing) throw error(404, 'task not found');
 	if (title !== undefined) updates.title = title;
 	if (emoji !== undefined) updates.emoji = emoji;
 	if (durationMinutes !== undefined) {
-		updates.durationMinutes = durationMinutes;
+		updates.duration_minutes = durationMinutes;
 		// If not previously completed, mark completed now and attribute to current user
-		if (existing.completedAt == null) {
-			updates.completedAt = Date.now();
+		if (existing.completed_at == null) {
+			updates.completed_at = Date.now();
 			if (locals.user?.id != null) {
 				assignedUserId = Number(locals.user.id);
 			}
 		}
 		// else keep original completedAt and assignedUserId unless explicitly set by payload
 	}
-	if (assignedUserId !== undefined) updates.assignedUserId = assignedUserId;
-	if (scheduledAt !== undefined) updates.scheduledAt = scheduledAt;
-	if (recurrenceType !== undefined) updates.recurrenceType = recurrenceType;
-	if (recurrenceInterval !== undefined) updates.recurrenceInterval = recurrenceInterval;
+	if (assignedUserId !== undefined) updates.assigned_user_id = assignedUserId;
+	if (scheduledAt !== undefined) updates.scheduled_at = scheduledAt;
+	if (recurrenceType !== undefined) updates.recurrence_type = recurrenceType;
+	if (recurrenceInterval !== undefined) updates.recurrence_interval = recurrenceInterval;
 
 	if (Object.keys(updates).length === 0) return json({});
 
-	const [updated] = await db.update(task).set(updates).where(eq(task.id, id)).returning();
+	const { data: updated, error: uErr } = await supabase
+		.from('task')
+		.update(updates)
+		.eq('id', id)
+		.select()
+		.single();
+	if (uErr) throw error(500, uErr.message);
 	if (!updated) throw error(404, 'task not found');
 	return json(updated);
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	const id = Number(params.id);
 	if (!Number.isFinite(id)) throw error(400, 'invalid id');
 
-	const [deleted] = await db.delete(task).where(eq(task.id, id)).returning();
+	const { data: deleted, error: dErr } = await supabase
+		.from('task')
+		.delete()
+		.eq('id', id)
+		.select()
+		.single();
+	if (dErr) throw error(500, dErr.message);
 	if (!deleted) throw error(404, 'task not found');
 	return json({ ok: true });
 };

@@ -1,9 +1,8 @@
 import type { PageServerLoad } from './$types';
-import { db } from '$lib/server/db';
-import { task, treat, user, groupMember } from '$lib/server/db/schema';
-import { and, eq, isNotNull, gte, lte, desc, inArray } from 'drizzle-orm';
+import { createSupabaseServer } from '$lib/server/supabase';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	if (!locals.user) return { user: null };
 	const gid = locals.groupId;
 	const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
@@ -22,51 +21,45 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const rangeFrom = parseTs(url.searchParams.get('from')) ?? defaultFrom;
 	const rangeTo = parseTs(url.searchParams.get('to')) ?? now;
 
-	const tasksDone = gid
-		? await db
-				.select()
-				.from(task)
-				.where(
-					and(
-						eq(task.groupId, gid),
-						isNotNull(task.completedAt),
-						gte(task.completedAt, rangeFrom),
-						lte(task.completedAt, rangeTo)
-					)
-				)
-				.orderBy(desc(task.completedAt))
-		: [];
+	const { data: tasksDone } = gid
+		? await supabase
+				.from('task')
+				.select('*')
+				.eq('group_id', gid)
+				.not('completed_at', 'is', null)
+				.gte('completed_at', rangeFrom)
+				.lte('completed_at', rangeTo)
+				.order('completed_at', { ascending: false })
+		: ({ data: [] } as any);
 
-	const recentTasks = gid
-		? await db
-				.select()
-				.from(task)
-				.where(
-					and(
-						eq(task.groupId, gid),
-						isNotNull(task.completedAt),
-						gte(task.completedAt, recentSince)
-					)
-				)
-				.orderBy(desc(task.completedAt))
-		: [];
+	const { data: recentTasks } = gid
+		? await supabase
+				.from('task')
+				.select('*')
+				.eq('group_id', gid)
+				.not('completed_at', 'is', null)
+				.gte('completed_at', recentSince)
+				.order('completed_at', { ascending: false })
+		: ({ data: [] } as any);
 
-	const treatsAll = gid ? await db.select().from(treat).where(eq(treat.groupId, gid)) : [];
-	const members = gid
-		? await db.select().from(groupMember).where(eq(groupMember.groupId, gid))
-		: [];
-	const memberIds = members.map((m) => m.userId);
-	const users = memberIds.length
-		? await db.select().from(user).where(inArray(user.id, memberIds))
-		: [];
+	const { data: treatsAll } = gid
+		? await supabase.from('treat').select('*').eq('group_id', gid)
+		: ({ data: [] } as any);
+	const { data: memberships } = gid
+		? await supabase.from('group_member').select('user_id').eq('group_id', gid)
+		: ({ data: [] } as any);
+	const memberIds = (memberships ?? []).map((m: any) => m.user_id);
+	const { data: users } = memberIds.length
+		? await supabase.from('user').select('*').in('id', memberIds)
+		: ({ data: [] } as any);
 	return {
 		user: locals.user,
 		groupId: gid,
-		tasksDone,
-		recentTasks,
+		tasksDone: tasksDone ?? [],
+		recentTasks: recentTasks ?? [],
 		recentSince,
-		treatsAll,
-		users,
+		treatsAll: treatsAll ?? [],
+		users: users ?? [],
 		rangeFrom,
 		rangeTo
 	};

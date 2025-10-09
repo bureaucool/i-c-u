@@ -1,67 +1,75 @@
 import type { Actions, PageServerLoad } from './$types';
 import { redirect, fail } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { group, groupMember, user } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
-import { createUserWithPassword } from '$lib/server/auth';
+import { createSupabaseServer } from '$lib/server/supabase';
 
 const ADMIN_EMAIL = 'mail@benw.de';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	if (!locals.user || locals.user.email !== ADMIN_EMAIL) throw redirect(302, '/');
 
-	const groups = await db.select().from(group);
+	const { data: groups } = await supabase.from('group').select('*');
 	// Members by group
 	const membersByGroup: Record<number, Array<{ id: number; name: string; email: string }>> = {};
-	for (const g of groups) {
-		const members = await db
-			.select({ id: user.id, name: user.name, email: user.email })
-			.from(groupMember)
-			.innerJoin(user, eq(groupMember.userId, user.id))
-			.where(eq(groupMember.groupId, g.id));
-		membersByGroup[g.id] = members as any;
+	for (const g of groups ?? []) {
+		const { data: memberIds } = await supabase
+			.from('group_member')
+			.select('user_id')
+			.eq('group_id', g.id);
+		const ids = (memberIds ?? []).map((m: any) => m.user_id);
+		const { data: users } = ids.length
+			? await supabase.from('user').select('id,name,email').in('id', ids)
+			: ({ data: [] } as any);
+		membersByGroup[g.id] = users as any[] as any;
 	}
-	return { groups, membersByGroup };
+	return { groups: groups ?? [], membersByGroup };
 };
 
 export const actions: Actions = {
-	createGroup: async ({ request, locals }) => {
+	createGroup: async ({ request, locals, cookies }) => {
+		const supabase = createSupabaseServer(cookies);
 		if (!locals.user || locals.user.email !== ADMIN_EMAIL)
 			return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const title = String(form.get('title') ?? '').trim();
 		if (!title) return fail(400, { message: 'invalid' });
-		await db.insert(group).values({ title }).run();
+		const { error } = await supabase.from('group').insert({ title });
+		if (error) return fail(500, { message: error.message });
 		return { ok: true };
 	},
-	addMember: async ({ request, locals }) => {
+	addMember: async ({ request, locals, cookies }) => {
+		const supabase = createSupabaseServer(cookies);
 		if (!locals.user || locals.user.email !== ADMIN_EMAIL)
 			return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const name = String(form.get('name') ?? '').trim();
 		const email = String(form.get('email') ?? '').trim();
-		const password = String(form.get('password') ?? '');
 		const groupId = Number(form.get('groupId'));
-		if (!email || !password || !Number.isFinite(groupId)) return fail(400, { message: 'invalid' });
+		if (!email || !Number.isFinite(groupId)) return fail(400, { message: 'invalid' });
 
-		// create user if not exists
-		let u = await db
-			.select()
-			.from(user)
-			.where(eq(user.email, email))
-			.limit(1)
-			.then((r) => r[0]);
+		// create user if not exists (by email)
+		let { data: u } = await supabase.from('user').select('*').eq('email', email).maybeSingle();
 		if (!u) {
-			u = await createUserWithPassword(name || email.split('@')[0] || email, email, password);
+			const { data: created, error: cErr } = await supabase
+				.from('user')
+				.insert({ name: name || email.split('@')[0] || email, email })
+				.select()
+				.single();
+			if (cErr) return fail(500, { message: cErr.message });
+			u = created as any;
 		}
 		// add to group if not already
-		const existing = await db
-			.select()
-			.from(groupMember)
-			.where(eq(groupMember.groupId, groupId))
-			.then((ms) => ms.find((m) => (m as any).userId === u!.id));
+		const { data: existing } = await supabase
+			.from('group_member')
+			.select('user_id')
+			.eq('group_id', groupId)
+			.eq('user_id', (u as any).id)
+			.maybeSingle();
 		if (!existing) {
-			await db.insert(groupMember).values({ groupId, userId: u.id }).run();
+			const { error: gmErr } = await supabase
+				.from('group_member')
+				.insert({ group_id: groupId, user_id: (u as any).id });
+			if (gmErr) return fail(500, { message: gmErr.message });
 		}
 		return { ok: true };
 	}

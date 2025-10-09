@@ -1,9 +1,8 @@
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { task, user, groupMember } from '$lib/server/db/schema';
-import { and, eq, isNotNull, gte, lte, inArray } from 'drizzle-orm';
+import { createSupabaseServer } from '$lib/server/supabase';
 
-export const GET: RequestHandler = async ({ locals, url }) => {
+export const GET: RequestHandler = async ({ locals, url, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
 	if (!locals.user || !locals.groupId)
 		return new Response(JSON.stringify({ percentages: [0, 0] }), { status: 200 });
 	const gid = locals.groupId;
@@ -13,17 +12,13 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const now = Date.now();
 	const from = now - rangeDays * 24 * 60 * 60 * 1000;
 
-	const tasksInRange = await db
-		.select()
-		.from(task)
-		.where(
-			and(
-				eq(task.groupId, gid),
-				isNotNull(task.completedAt),
-				gte(task.completedAt, from),
-				lte(task.completedAt, now)
-			)
-		);
+	const { data: tasksInRange } = await supabase
+		.from('task')
+		.select('*')
+		.eq('group_id', gid)
+		.not('completed_at', 'is', null)
+		.gte('completed_at', from)
+		.lte('completed_at', now);
 
 	const youMinutes = tasksInRange
 		.filter((t) => t.assignedUserId === youId)
@@ -32,18 +27,25 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		.filter((t) => t.assignedUserId == null || t.assignedUserId !== youId)
 		.reduce((acc, t) => acc + (Number((t as any).durationMinutes ?? 0) || 0), 0);
 
-	const memberIds = await db
-		.select({ userId: groupMember.userId })
-		.from(groupMember)
-		.where(eq(groupMember.groupId, gid));
-	const ids = memberIds.map((m) => m.userId);
-	const groupUsers = ids.length ? await db.select().from(user).where(inArray(user.id, ids)) : [];
+	const { data: memberIds } = await supabase
+		.from('group_member')
+		.select('user_id')
+		.eq('group_id', gid);
+	const ids = (memberIds ?? []).map((m: any) => m.user_id);
+	const { data: groupUsers } = ids.length
+		? await supabase.from('user').select('*').in('id', ids)
+		: ({ data: [] } as any);
 
 	const youAvail =
-		Number((groupUsers.find((u) => u.id === youId) as any)?.availableTimeMinutesPerWeek ?? 0) || 0;
-	const othersAvail = groupUsers
-		.filter((u) => u.id !== youId)
-		.reduce((acc, u: any) => acc + (Number(u?.availableTimeMinutesPerWeek ?? 0) || 0), 0);
+		Number(
+			(groupUsers as any[]).find((u: any) => u.id === youId)?.available_time_minutes_per_week ?? 0
+		) || 0;
+	const othersAvail = (groupUsers as any[])
+		.filter((u: any) => u.id !== youId)
+		.reduce(
+			(acc: number, u: any) => acc + (Number(u?.available_time_minutes_per_week ?? 0) || 0),
+			0
+		);
 
 	const youNorm = youAvail > 0 ? youMinutes / youAvail : 0;
 	const othersNorm = othersAvail > 0 ? othersMinutes / othersAvail : 0;

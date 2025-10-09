@@ -1,85 +1,111 @@
 import type { Actions, PageServerLoad } from './$types';
-import { db } from '$lib/server/db';
-import { group, groupMember, user } from '$lib/server/db/schema';
+import { createSupabaseServer } from '$lib/server/supabase';
 import { changePassword, createUserWithPassword } from '$lib/server/auth';
 import { fail } from '@sveltejs/kit';
-import { and, eq } from 'drizzle-orm';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) return { user: null };
-	const groups = await db
-		.select({ id: group.id, title: group.title })
-		.from(groupMember)
-		.innerJoin(group, eq(groupMember.groupId, group.id))
-		.where(eq(groupMember.userId, locals.user.id));
-	const users = await db.select().from(user);
-	// fetch current user availability
-	const [me] = await db.select().from(user).where(eq(user.id, locals.user.id)).limit(1);
-	// members of current group
+export const load: PageServerLoad = async ({ locals, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
+	if (!locals.user) return { user: null } as any;
+
+	// Groups current user belongs to
+	const { data: memberships } = await supabase
+		.from('group_member')
+		.select('group_id')
+		.eq('user_id', locals.user.id);
+	const groupIds = (memberships ?? []).map((m: any) => m.group_id);
+	const { data: groups } = groupIds.length
+		? await supabase.from('group').select('id,title').in('id', groupIds)
+		: ({ data: [] } as any);
+
+	// All users (for selectors)
+	const { data: users } = await supabase.from('user').select('*');
+
+	// Current user info
+	const { data: me } = await supabase
+		.from('user')
+		.select('*')
+		.eq('id', locals.user.id)
+		.maybeSingle();
+
+	// Members of the active group
 	let members: Array<{ id: number; name: string; email: string | null }> = [];
 	if (locals.groupId) {
-		members = await db
-			.select({ id: user.id, name: user.name, email: user.email })
-			.from(groupMember)
-			.innerJoin(user, eq(groupMember.userId, user.id))
-			.where(eq(groupMember.groupId, locals.groupId));
+		const { data: memberIds } = await supabase
+			.from('group_member')
+			.select('user_id')
+			.eq('group_id', locals.groupId);
+		const ids = (memberIds ?? []).map((m: any) => m.user_id);
+		const { data: usersOfGroup } = ids.length
+			? await supabase.from('user').select('id,name,email').in('id', ids)
+			: ({ data: [] } as any);
+		members = usersOfGroup as any[] as any;
 	}
+
 	return {
-		user: { ...locals.user, availableTimeMinutesPerWeek: me?.availableTimeMinutesPerWeek ?? null },
+		user: {
+			...locals.user,
+			availableTimeMinutesPerWeek: (me as any)?.available_time_minutes_per_week ?? null
+		},
 		groupId: locals.groupId,
-		groups,
-		users,
+		groups: groups ?? [],
+		users: users ?? [],
 		members
-	};
+	} as any;
 };
 
 export const actions: Actions = {
-	updateGroup: async ({ request, locals }) => {
+	updateGroup: async ({ request, locals, cookies }) => {
+		const supabase = createSupabaseServer(cookies);
 		if (!locals.user) return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const id = Number(form.get('groupId'));
 		const title = String(form.get('title') ?? '').trim();
 		if (!Number.isFinite(id) || !title) return fail(400, { message: 'invalid' });
-		await db.update(group).set({ title }).where(eq(group.id, id)).run();
+		const { error } = await supabase.from('group').update({ title }).eq('id', id);
+		if (error) return fail(500, { message: error.message });
 		return { ok: true };
 	},
 	selectGroup: async ({ request, locals, cookies }) => {
+		const supabase = createSupabaseServer(cookies);
 		if (!locals.user) return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const id = Number(form.get('groupId'));
 		if (!Number.isFinite(id)) return fail(400, { message: 'invalid' });
 		// ensure membership
-		const [m] = await db
-			.select()
-			.from(groupMember)
-			.where(and(eq(groupMember.groupId, id), eq(groupMember.userId, locals.user.id)))
-			.limit(1);
+		const { data: m } = await supabase
+			.from('group_member')
+			.select('user_id')
+			.eq('group_id', id)
+			.eq('user_id', locals.user.id)
+			.maybeSingle();
 		if (!m) return fail(403, { message: 'not a member' });
 		cookies.set('gid', String(id), { path: '/', sameSite: 'lax' });
 		return { ok: true };
 	},
-	updateAvailability: async ({ request, locals }) => {
+	updateAvailability: async ({ request, locals, cookies }) => {
+		const supabase = createSupabaseServer(cookies);
 		if (!locals.user) return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const id = Number(form.get('userId'));
 		const minutes = Number(form.get('availableTimeMinutesPerWeek'));
 		if (!Number.isFinite(id) || !Number.isFinite(minutes)) return fail(400, { message: 'invalid' });
-		await db
-			.update(user)
-			.set({ availableTimeMinutesPerWeek: minutes })
-			.where(eq(user.id, id))
-			.run();
+		const { error } = await supabase
+			.from('user')
+			.update({ available_time_minutes_per_week: minutes })
+			.eq('id', id);
+		if (error) return fail(500, { message: error.message });
 		return { ok: true };
 	},
-	changePassword: async ({ request, locals }) => {
+	changePassword: async ({ request, locals, cookies }) => {
 		if (!locals.user) return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const newPassword = String(form.get('newPassword') ?? '');
 		if (!newPassword) return fail(400, { message: 'invalid' });
-		await changePassword(locals.user.id, newPassword);
+		await changePassword(locals.user.id, newPassword, cookies);
 		return { ok: true };
 	},
-	addMember: async ({ request, locals }) => {
+	addMember: async ({ request, locals, cookies }) => {
+		const supabase = createSupabaseServer(cookies);
 		if (!locals.user) return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '').trim();
@@ -89,36 +115,33 @@ export const actions: Actions = {
 		if (!email || !password || !Number.isFinite(groupId)) return fail(400, { message: 'invalid' });
 
 		// Create user if not exists
-		let u = await db
-			.select()
-			.from(user)
-			.where(eq(user.email, email))
-			.limit(1)
-			.then((r) => r[0]);
+		let { data: u } = await supabase.from('user').select('*').eq('email', email).maybeSingle();
 		if (!u) {
-			u = await createUserWithPassword(name, email, password);
+			u = (await createUserWithPassword(name, email, password, cookies)) as any;
 		} else {
 			// ensure has password
-			if (!u.passwordHash) {
-				await changePassword(u.id, password);
+			if (!(u as any).password_hash) {
+				await changePassword((u as any).id, password, cookies);
 			}
 		}
 
 		// add membership if not present
-		const [m] = await db
-			.select()
-			.from(groupMember)
-			.where(and(eq(groupMember.groupId, groupId as number), eq(groupMember.userId, u.id)))
-			.limit(1);
+		const { data: m } = await supabase
+			.from('group_member')
+			.select('user_id')
+			.eq('group_id', groupId as number)
+			.eq('user_id', (u as any).id)
+			.maybeSingle();
 		if (!m) {
-			await db
-				.insert(groupMember)
-				.values({ groupId: groupId as number, userId: u.id })
-				.run();
+			const { error: gmErr } = await supabase
+				.from('group_member')
+				.insert({ group_id: groupId as number, user_id: (u as any).id });
+			if (gmErr) return fail(500, { message: gmErr.message });
 		}
 		return { ok: true };
 	},
-	removeMember: async ({ request, locals }) => {
+	removeMember: async ({ request, locals, cookies }) => {
+		const supabase = createSupabaseServer(cookies);
 		if (!locals.user) return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const userId = Number(form.get('userId'));
@@ -126,10 +149,12 @@ export const actions: Actions = {
 		if (!Number.isFinite(userId) || !Number.isFinite(groupId))
 			return fail(400, { message: 'invalid' });
 
-		await db
-			.delete(groupMember)
-			.where(and(eq(groupMember.groupId, groupId as number), eq(groupMember.userId, userId)))
-			.run();
+		const { error } = await supabase
+			.from('group_member')
+			.delete()
+			.eq('group_id', groupId as number)
+			.eq('user_id', userId);
+		if (error) return fail(500, { message: error.message });
 		return { ok: true };
 	}
 };

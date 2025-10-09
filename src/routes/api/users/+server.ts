@@ -1,15 +1,17 @@
 import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { user } from '$lib/server/db/schema';
+import { createSupabaseServer } from '$lib/server/supabase';
 
-export const GET: RequestHandler = async () => {
-	const rows = await db.select().from(user);
-	return json(rows);
+export const GET: RequestHandler = async ({ cookies }) => {
+	const supabase = createSupabaseServer(cookies);
+	const { data, error: err } = await supabase.from('user').select('*');
+	if (err) throw error(500, err.message);
+	return json(data ?? []);
 };
 
-export const POST: RequestHandler = async ({ request }) => {
-	const body = await request.json().catch(() => ({} as Record<string, unknown>));
+export const POST: RequestHandler = async ({ request, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
+	const body = await request.json().catch(() => ({}) as Record<string, unknown>);
 	const name = typeof body.name === 'string' ? body.name.trim() : '';
 	const email = typeof body.email === 'string' ? body.email.trim() : '';
 	const availableTimeMinutesPerWeek = Number.isFinite(body.availableTimeMinutesPerWeek as number)
@@ -19,16 +21,11 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (!name) throw error(400, 'name is required');
 	if (!email) throw error(400, 'email is required');
 
-	try {
-		const [created] = await db
-			.insert(user)
-			.values({ name, email, availableTimeMinutesPerWeek })
-			.returning();
-		return json(created, { status: 201 });
-	} catch (e) {
-		// likely unique constraint on email
-		throw error(409, 'email already exists');
-	}
+	const { data: created, error: cErr } = await supabase
+		.from('user')
+		.insert({ name, email, available_time_minutes_per_week: availableTimeMinutesPerWeek })
+		.select()
+		.single();
+	if (cErr) throw error(cErr.code === '23505' ? 409 : 500, cErr.message);
+	return json(created, { status: 201 });
 };
-
-
