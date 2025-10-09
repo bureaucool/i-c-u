@@ -6,9 +6,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Supabase SSR client for auth cookies handling
 	const supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
 		cookies: {
-			get: (key) => event.cookies.get(key),
-			set: (key, value, options) => event.cookies.set(key, value, { path: '/', ...options }),
-			remove: (key, options) => event.cookies.delete(key, { path: '/', ...options })
+			getAll() {
+				return event.cookies.getAll();
+			},
+			setAll(cookiesToSet) {
+				/**         * Note: You have to add the `path` variable to the         * set and remove method due to sveltekit's cookie API         * requiring this to be set, setting the path to an empty string         * will replicate previous/standard behavior (https://kit.svelte.dev/docs/types#public-types-cookies)         */ cookiesToSet.forEach(
+					({ name, value, options }) => event.cookies.set(name, value, { ...options, path: '/' })
+				);
+			}
 		}
 	});
 
