@@ -8,6 +8,50 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
 	const recentSince = Date.now() - threeDaysMs;
 
+	// Mapper functions to transform snake_case to camelCase
+	function mapTaskRow(r: any) {
+		return {
+			id: r.id,
+			groupId: r.group_id,
+			title: r.title,
+			emoji: r.emoji,
+			assignedUserId: r.assigned_user_id,
+			durationMinutes: r.duration_minutes,
+			scheduledAt: r.scheduled_at,
+			recurrenceType: r.recurrence_type,
+			recurrenceInterval: r.recurrence_interval,
+			completedAt: r.completed_at
+		};
+	}
+
+	function mapUserRow(r: any) {
+		return {
+			id: r.id,
+			name: r.name,
+			email: r.email,
+			availableTimeMinutesPerWeek: r.available_time_minutes_per_week,
+			passwordHash: r.password_hash
+		};
+	}
+
+	function mapTreatRow(r: any) {
+		return {
+			id: r.id,
+			groupId: r.group_id,
+			title: r.title,
+			emoji: r.emoji,
+			fromUserId: r.from_user_id,
+			toUserId: r.to_user_id,
+			accepted: r.accepted,
+			valueMinutes: r.value_minutes,
+			createdAt: r.created_at,
+			acceptedAt: r.accepted_at,
+			declinedAt: r.declined_at,
+			feedbackNote: r.feedback_note,
+			acceptedNotifiedAt: r.accepted_notified_at
+		};
+	}
+
 	// Flexible range: parse from/to (ms timestamps). Defaults to last 30 days
 	const now = Date.now();
 	const defaultFrom = now - 30 * 24 * 60 * 60 * 1000;
@@ -55,11 +99,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	return {
 		user: locals.user,
 		groupId: gid,
-		tasksDone: tasksDone ?? [],
-		recentTasks: recentTasks ?? [],
+		tasksDone: (tasksDone ?? []).map(mapTaskRow),
+		recentTasks: (recentTasks ?? []).map(mapTaskRow),
 		recentSince,
-		treatsAll: treatsAll ?? [],
-		users: users ?? [],
+		treatsAll: (treatsAll ?? []).map(mapTreatRow),
+		users: (users ?? []).map(mapUserRow),
 		rangeFrom,
 		rangeTo
 	};

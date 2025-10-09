@@ -20,12 +20,12 @@ export const GET: RequestHandler = async ({ locals, url, cookies }) => {
 		.gte('completed_at', from)
 		.lte('completed_at', now);
 
-	const youMinutes = tasksInRange
-		.filter((t) => t.assignedUserId === youId)
-		.reduce((acc, t) => acc + (Number((t as any).durationMinutes ?? 0) || 0), 0);
-	const othersMinutes = tasksInRange
-		.filter((t) => t.assignedUserId == null || t.assignedUserId !== youId)
-		.reduce((acc, t) => acc + (Number((t as any).durationMinutes ?? 0) || 0), 0);
+	const youMinutes = (tasksInRange ?? [])
+		.filter((t: any) => t.assigned_user_id === youId)
+		.reduce((acc, t: any) => acc + (Number(t.duration_minutes ?? 0) || 0), 0);
+	const othersMinutes = (tasksInRange ?? [])
+		.filter((t: any) => t.assigned_user_id == null || t.assigned_user_id !== youId)
+		.reduce((acc, t: any) => acc + (Number(t.duration_minutes ?? 0) || 0), 0);
 
 	const { data: memberIds } = await supabase
 		.from('group_member')
