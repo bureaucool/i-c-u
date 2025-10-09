@@ -51,6 +51,7 @@
 
 	let loginOpen = $state(false);
 	let signupOpen = $state(false);
+	let resetOpen = $state(false);
 
 	$effect(() => {
 		if (!showAdd) {
@@ -253,11 +254,50 @@
 				{#if signupErr}<p>{signupErr}</p>{/if}
 			</div>
 		</div>
+	{:else if resetOpen}
+		<div
+			class="fixed inset-0 z-10 h-full w-full"
+			role="button"
+			tabindex="0"
+			aria-label="Close reset dialog"
+			onclick={() => (resetOpen = false)}
+			onkeydown={(e) => (e.key === 'Escape' ? (resetOpen = false) : null)}
+		></div>
+		<div class="fixed top-3 right-3 z-20 rounded-xl bg-white p-3">
+			<div class="flex flex-col gap-y-2">
+				<form
+					class="flex flex-col gap-y-2"
+					onsubmit={async (e) => {
+						e.preventDefault();
+						loginMsg = loginErr = null;
+						const form = new FormData(e.currentTarget as HTMLFormElement);
+						const body = Object.fromEntries(form.entries());
+						const res = await fetch('/api/auth/reset', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(body)
+						});
+						if (res.ok) {
+							loginMsg = 'If the email exists, a reset link was sent.';
+						} else {
+							const err = await res.json().catch(() => ({}));
+							loginErr = err?.error || err?.message || 'Failed to send reset email';
+						}
+					}}
+				>
+					<input name="email" type="email" placeholder="Email" required />
+					<button type="submit">Send reset link</button>
+				</form>
+				{#if loginMsg}<p>{loginMsg}</p>{/if}
+				{#if loginErr}<p>{loginErr}</p>{/if}
+			</div>
+		</div>
 	{:else}
 		<div class="fixed top-3 right-3">
 			<div class="flex flex-col gap-y-2">
 				<button onclick={() => (loginOpen = true)}>Log in</button>
 				<button onclick={() => (signupOpen = true)}>Sign up</button>
+				<button onclick={() => (resetOpen = true)}>Reset password</button>
 			</div>
 		</div>
 	{/if}
