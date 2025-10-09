@@ -38,6 +38,8 @@
 	// Floating treat accept flow state
 	let acceptingTreatId: number | null = $state(null);
 
+	let listOpen = $state<boolean>(false);
+
 	// One-time acceptance notification (for creator)
 	let acceptedNotices = $state((data as any).acceptedTreatsToNotify ?? []);
 	async function acknowledgeAccepted(id: number) {
@@ -158,11 +160,14 @@
 			role="button"
 			tabindex="0"
 			aria-label="Close login dialog"
-			onclick={() => (loginOpen = false)}
+			onclick={() => {
+				loginOpen = false;
+				listOpen = false;
+			}}
 			onkeydown={(e) => (e.key === 'Escape' ? (loginOpen = false) : null)}
 		></div>
-		<div class="fixed top-3 right-3 z-20 rounded-xl bg-white p-3">
-			<div class="flex flex-col gap-y-2">
+		<div class="fixed inset-x-3 top-3 z-20 flex justify-center">
+			<div class="flex w-60 flex-col gap-y-2 rounded-xl bg-white p-3">
 				<form
 					class="flex flex-col gap-y-2"
 					onsubmit={async (e) => {
@@ -187,7 +192,7 @@
 				>
 					<input name="email" type="email" placeholder="Email" required />
 					<input name="password" type="password" placeholder="Password" required />
-					<button type="submit">Log in</button>
+					<Button big={false} type="submit">Log in</Button>
 				</form>
 				{#if loginMsg}<p>{loginMsg}</p>{/if}
 				{#if loginErr}<p>{loginErr}</p>{/if}
@@ -199,11 +204,14 @@
 			role="button"
 			tabindex="0"
 			aria-label="Close signup dialog"
-			onclick={() => (signupOpen = false)}
+			onclick={() => {
+				signupOpen = false;
+				listOpen = false;
+			}}
 			onkeydown={(e) => (e.key === 'Escape' ? (signupOpen = false) : null)}
 		></div>
-		<div class="fixed top-3 right-3 z-20 rounded-xl bg-white p-3">
-			<div class="flex flex-col gap-y-2">
+		<div class="fixed inset-x-3 top-3 z-20 flex justify-center">
+			<div class="flex w-60 flex-col gap-y-2 rounded-xl bg-white p-3">
 				<form
 					class="flex flex-col gap-y-2"
 					onsubmit={async (e) => {
@@ -250,7 +258,7 @@
 						minlength="8"
 						required
 					/>
-					<button type="submit">Sign up</button>
+					<Button big={false} type="submit">Sign up</Button>
 				</form>
 				{#if signupMsg}<p>{signupMsg}</p>{/if}
 				{#if signupErr}<p>{signupErr}</p>{/if}
@@ -262,11 +270,14 @@
 			role="button"
 			tabindex="0"
 			aria-label="Close reset dialog"
-			onclick={() => (resetOpen = false)}
+			onclick={() => {
+				resetOpen = false;
+				listOpen = false;
+			}}
 			onkeydown={(e) => (e.key === 'Escape' ? (resetOpen = false) : null)}
 		></div>
-		<div class="fixed top-3 right-3 z-20 rounded-xl bg-white p-3">
-			<div class="flex flex-col gap-y-2">
+		<div class="fixed inset-x-3 top-3 z-20 flex justify-center">
+			<div class="flex w-60 flex-col gap-y-2 rounded-xl bg-white p-3">
 				<form
 					class="flex flex-col gap-y-2"
 					onsubmit={async (e) => {
@@ -288,18 +299,27 @@
 					}}
 				>
 					<input name="email" type="email" placeholder="Email" required />
-					<button type="submit">Send reset link</button>
+					<Button big={false} type="submit">Send reset link</Button>
 				</form>
 				{#if loginMsg}<p>{loginMsg}</p>{/if}
 				{#if loginErr}<p>{loginErr}</p>{/if}
 			</div>
 		</div>
+	{:else if listOpen}
+		<div class="pointer-events-none fixed inset-0 top-3 z-40">
+			<div class="item-end mx-auto flex w-60 flex-col gap-y-0.5 px-7">
+				<Button big={false} onclick={() => (loginOpen = true)}>Log in</Button>
+				<Button big={false} onclick={() => (signupOpen = true)}>Sign up</Button>
+
+				<Button grey big={false} onclick={() => (resetOpen = true)}>Reset password</Button>
+			</div>
+		</div>
 	{:else}
-		<div class="fixed top-3 right-3">
-			<div class="flex flex-col gap-y-2">
-				<button onclick={() => (loginOpen = true)}>Log in</button>
-				<button onclick={() => (signupOpen = true)}>Sign up</button>
-				<button onclick={() => (resetOpen = true)}>Reset password</button>
+		<div class="pointer-events-none fixed inset-0 top-3 z-40">
+			<div class="mx-auto flex max-w-xl justify-end px-7">
+				<span onclick={() => (listOpen = true)} class="pointer-events-auto p-3"
+					><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></span
+				>
 			</div>
 		</div>
 	{/if}
