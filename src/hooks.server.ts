@@ -18,13 +18,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	let currentUser: { id: number; name: string; email: string } | null = null;
 	let currentGroupId: number | null = null;
-	if (sbUser?.email) {
-		const { data: u } = await supabase
+	if (sbUser) {
+		// Prefer mapping by auth_user_id (uuid)
+		let { data: u } = await supabase
 			.from('user')
 			.select('*')
-			.eq('email', sbUser.email)
+			.eq('auth_user_id', sbUser.id)
 			.maybeSingle();
-		if (u) currentUser = { id: u.id, name: u.name, email: u.email } as any;
+		// Fallback by email, then backfill mapping
+		if (!u && sbUser.email) {
+			const res = await supabase.from('user').select('*').eq('email', sbUser.email).maybeSingle();
+			u = res.data as any;
+			if (u && !u.auth_user_id) {
+				await supabase.from('user').update({ auth_user_id: sbUser.id }).eq('id', u.id);
+			}
+		}
+		if (u)
+			currentUser = { id: (u as any).id, name: (u as any).name, email: (u as any).email } as any;
 	}
 
 	// choose group from cookie if valid membership; otherwise default to first membership
