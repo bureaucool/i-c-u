@@ -177,54 +177,79 @@ pnpm run check
 - `/settings` — Update group title and adjust the current user's availability. Also supports changing the logged-in user's password.
 - `/auth/reset` — Password reset page (accessed via email link)
 
-### Password Reset Configuration
+### Password Reset Configuration (PKCE-Free Solution)
 
-For password reset to work properly, you need to configure Supabase:
+This app uses **Supabase's OTP verification** for password reset, which bypasses PKCE issues entirely. No external email service needed!
 
-1. **Disable PKCE for Password Recovery** (Critical):
-   - Go to Authentication > Settings in your Supabase Dashboard
-   - Scroll to "Auth Flow" or "Advanced Settings"
-   - Set "Flow Type" or "Auth Providers" to use "implicit" flow for password recovery
-   - OR ensure "Enable PKCE Flow" is turned OFF
-   - **Note**: Some Supabase projects have PKCE enabled by default, which causes the error "both auth code and code verifier should be non-empty" for password recovery
+**How it works:**
 
-2. **Add Redirect URL in Supabase Dashboard**:
-   - Go to Authentication > URL Configuration
-   - Add your app URL to the "Redirect URLs" list:
-     - Development: `http://localhost:5173/auth/reset`
-     - Production: `https://yourdomain.com/auth/reset`
+1. User requests password reset → Supabase sends email with OTP token
+2. User clicks link → Server verifies OTP and establishes session
+3. User sets new password → Updates via authenticated session
+4. No PKCE involved = No errors! ✅
 
-3. **Email Templates** (IMPORTANT):
-   - Go to Authentication > Email Templates
-   - Select the "Reset Password" template
-   - **Use the Supabase confirmation URL variable**, not a hardcoded link
-   - Replace the link in the template with: `{{ .ConfirmationURL }}`
-   - **DO NOT** use just `https://yourdomain.com/auth/reset` - this removes the token!
-   - The confirmation URL will automatically redirect to your configured redirect URL with the proper tokens
+**Setup Steps:**
 
-   Example template:
+1. **Configure Email Template in Supabase Dashboard**:
+   - Go to **Authentication** → **Email Templates**
+   - Select **"Reset Password"** (or "Confirm recovery")
+   - Update the template to use the server-side confirm endpoint:
 
    ```html
    <h2>Reset Password</h2>
    <p>Follow this link to reset your password:</p>
-   <p><a href="{{ .ConfirmationURL }}">Reset Password</a></p>
+   <p>
+   	<a href="{{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=recovery"
+   		>Reset Password</a
+   	>
+   </p>
+   <p>This link will expire in 1 hour.</p>
    ```
 
-4. **Environment Variables**:
+   **Key points:**
+   - Use `{{ .TokenHash }}` NOT `{{ .ConfirmationURL }}`
+   - Link points to `/api/auth/confirm` (server endpoint, not client page)
+   - Include `type=recovery` parameter
+
+2. **Add Redirect URL in Supabase Dashboard**:
+   - Go to **Authentication** → **URL Configuration**
+   - Add to "Redirect URLs":
+     - Development: `http://localhost:5173/api/auth/confirm`
+     - Production: `https://yourdomain.com/api/auth/confirm`
+
+3. **Environment Variables**:
    - Ensure `PUBLIC_APP_URL` is set correctly (see Environment section above)
 
-**Troubleshooting**:
-If you see the error "invalid request: both auth code and code verifier should be non-empty", this means PKCE flow is enabled for password recovery. Password recovery should use the implicit flow (hash fragments) instead. Check step 1 above.
+**The Flow:**
 
-**How to Fix the PKCE Error**:
+```
+User requests reset
+  ↓
+Supabase sends email with {{ .TokenHash }}
+  ↓
+User clicks link → /api/auth/confirm?token_hash=xxx&type=recovery
+  ↓
+Server verifies OTP using supabase.auth.verifyOtp()
+  ↓
+Session established via cookies
+  ↓
+Redirect to /auth/reset/confirm
+  ↓
+User sets new password (authenticated)
+  ↓
+Done! ✅
+```
 
-1. Log into your [Supabase Dashboard](https://app.supabase.com)
-2. Select your project
-3. Go to **Authentication** → **Settings**
-4. Look for "PKCE" or "Flow Type" settings
-5. For password recovery to work, you may need to:
-   - Disable PKCE globally, OR
-   - Configure PKCE to only apply to OAuth providers (not email/password)
-6. After making changes, request a new password reset email (old links won't work)
+**Why this works with PKCE enabled:**
 
-If you cannot find PKCE settings in your dashboard, it might be automatically managed. In that case, the error handling in the code will show you a helpful message to contact support.
+- Uses OTP (One-Time Password) flow instead of PKCE code exchange
+- Server-side verification = no client-side PKCE issues
+- Still uses Supabase's email service (no third-party needed)
+
+**Testing:**
+
+1. Click "Reset password" on your app
+2. Enter email address
+3. Check email for reset link
+4. Click link → redirected to password reset form
+5. Set new password
