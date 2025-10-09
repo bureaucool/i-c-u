@@ -6,7 +6,6 @@
 	let err: string | null = null;
 	let newPassword = '';
 	let confirmPassword = '';
-	let canSet = false;
 
 	onMount(async () => {
 		try {
@@ -19,14 +18,6 @@
 			const hashCode = hashParams.get('code');
 			if (accessToken && refreshToken) {
 				await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-				// Clean the hash for nicer UX
-				try {
-					history.replaceState(
-						null,
-						document.title,
-						window.location.pathname + window.location.search
-					);
-				} catch {}
 			}
 
 			// Fallback: handle code exchange (PKCE)
@@ -39,10 +30,6 @@
 					await supabase.auth.exchangeCodeForSession(code);
 				} catch {}
 			}
-
-			const { data } = await supabase.auth.getSession();
-			// When arriving via reset link, user will have a short-lived session allowing password update
-			canSet = !!data.session;
 		} catch {}
 	});
 
@@ -70,9 +57,6 @@
 
 <section class="flex min-h-screen flex-col items-center justify-center gap-y-4 p-6 text-center">
 	<h1 class="text-3xl">Reset password</h1>
-	{#if !canSet}
-		<p class="opacity-70">Open the reset link from your email to set a new password.</p>
-	{/if}
 	<form class="flex w-full max-w-sm flex-col gap-y-2" onsubmit={handleSubmit}>
 		<input
 			type="password"
