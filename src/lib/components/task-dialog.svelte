@@ -142,7 +142,9 @@
 					if (tempEmoji.ok) {
 						const tempEmojiData = await tempEmoji.json();
 						foundEmojis = tempEmojiData;
-						emoji = tempEmojiData[0].emoji || tempEmojiData[0].character || '';
+						if (tempEmojiData.length > 0) {
+							emoji = tempEmojiData[0].emoji || tempEmojiData[0].character || '';
+						}
 					}
 				}
 			}}

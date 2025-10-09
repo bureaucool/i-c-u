@@ -12,7 +12,11 @@ export const GET: RequestHandler = async ({ locals, url, cookies }) => {
 	const now = Date.now();
 	const from = now - rangeDays * 24 * 60 * 60 * 1000;
 
-	const { data: tasksInRange } = await supabase
+	// Get ALL tasks in the group (both completed and open)
+	const { data: allTasks } = await supabase.from('task').select('*').eq('group_id', gid);
+
+	// Get completed tasks in range
+	const { data: completedTasksInRange } = await supabase
 		.from('task')
 		.select('*')
 		.eq('group_id', gid)
@@ -20,12 +24,49 @@ export const GET: RequestHandler = async ({ locals, url, cookies }) => {
 		.gte('completed_at', from)
 		.lte('completed_at', now);
 
-	const youMinutes = (tasksInRange ?? [])
+	// Get all treats in the group (accepted only)
+	const { data: treats } = await supabase
+		.from('treat')
+		.select('*')
+		.eq('group_id', gid)
+		.eq('accepted', true);
+
+	// Calculate total expected work (all tasks, regardless of completion)
+	const totalExpectedMinutes = (allTasks ?? []).reduce(
+		(acc: number, t: any) => acc + (Number(t?.duration_minutes ?? 0) || 0),
+		0
+	);
+
+	// Calculate completed work by you (in range)
+	const youCompletedMinutes = (completedTasksInRange ?? [])
 		.filter((t: any) => t.assigned_user_id === youId)
-		.reduce((acc, t: any) => acc + (Number(t.duration_minutes ?? 0) || 0), 0);
-	const othersMinutes = (tasksInRange ?? [])
-		.filter((t: any) => t.assigned_user_id == null || t.assigned_user_id !== youId)
-		.reduce((acc, t: any) => acc + (Number(t.duration_minutes ?? 0) || 0), 0);
+		.reduce((acc: number, t: any) => acc + (Number(t?.duration_minutes ?? 0) || 0), 0);
+
+	// Calculate completed work by others (in range)
+	const othersCompletedMinutes = (completedTasksInRange ?? [])
+		.filter((t: any) => t.assigned_user_id !== youId)
+		.reduce((acc: number, t: any) => acc + (Number(t?.duration_minutes ?? 0) || 0), 0);
+
+	// Add treats to work contribution
+	// Treats you gave = extra work you did for others
+	// Treats you received = work done for you by others
+	const yourTreatsGiven = (treats ?? [])
+		.filter((tr: any) => tr.from_user_id === youId)
+		.reduce((acc: number, tr: any) => acc + (Number(tr?.value_minutes ?? 0) || 0), 0);
+	const yourTreatsReceived = (treats ?? [])
+		.filter((tr: any) => tr.to_user_id === youId)
+		.reduce((acc: number, tr: any) => acc + (Number(tr?.value_minutes ?? 0) || 0), 0);
+
+	const othersTreatsGiven = (treats ?? [])
+		.filter((tr: any) => tr.from_user_id !== youId)
+		.reduce((acc: number, tr: any) => acc + (Number(tr?.value_minutes ?? 0) || 0), 0);
+	const othersTreatsReceived = (treats ?? [])
+		.filter((tr: any) => tr.to_user_id !== youId)
+		.reduce((acc: number, tr: any) => acc + (Number(tr?.value_minutes ?? 0) || 0), 0);
+
+	// Net contribution including treats
+	const yourTotalContribution = youCompletedMinutes + yourTreatsGiven - yourTreatsReceived;
+	const othersTotalContribution = othersCompletedMinutes + othersTreatsGiven - othersTreatsReceived;
 
 	const { data: memberIds } = await supabase
 		.from('group_member')
@@ -39,19 +80,38 @@ export const GET: RequestHandler = async ({ locals, url, cookies }) => {
 	const youAvail =
 		Number(
 			(groupUsers as any[]).find((u: any) => u.id === youId)?.available_time_minutes_per_week ?? 0
-		) || 0;
-	const othersAvail = (groupUsers as any[])
-		.filter((u: any) => u.id !== youId)
-		.reduce(
-			(acc: number, u: any) => acc + (Number(u?.available_time_minutes_per_week ?? 0) || 0),
-			0
-		);
+		) || 1; // Default to 1 to avoid division by zero
+	const othersAvail =
+		(groupUsers as any[])
+			.filter((u: any) => u.id !== youId)
+			.reduce(
+				(acc: number, u: any) => acc + (Number(u?.available_time_minutes_per_week ?? 0) || 0),
+				0
+			) || 1; // Default to 1 to avoid division by zero
 
-	const youNorm = youAvail > 0 ? youMinutes / youAvail : 0;
-	const othersNorm = othersAvail > 0 ? othersMinutes / othersAvail : 0;
-	const normSum = youNorm + othersNorm;
-	const yourAdjPercent = normSum ? Math.round((youNorm / normSum) * 100) : 0;
-	const percentages = [yourAdjPercent, 100 - yourAdjPercent] as [number, number];
+	// Calculate what fraction of total expected work is completed
+	const totalCompleted = yourTotalContribution + othersTotalContribution;
+	const completionRatio = totalExpectedMinutes > 0 ? totalCompleted / totalExpectedMinutes : 0;
+
+	// Normalize contributions by available time to get relative effort
+	const yourNormalizedEffort = yourTotalContribution / youAvail;
+	const othersNormalizedEffort = othersTotalContribution / othersAvail;
+	const totalNormalizedEffort = yourNormalizedEffort + othersNormalizedEffort;
+
+	// Calculate percentages:
+	// - Scale by completion ratio so that incomplete work shows empty space
+	// - Split based on relative effort (normalized by availability)
+	let percentages: [number, number] = [0, 0];
+	if (totalNormalizedEffort > 0) {
+		const yourShare = yourNormalizedEffort / totalNormalizedEffort;
+		const othersShare = othersNormalizedEffort / totalNormalizedEffort;
+
+		// Scale both by completion ratio, then by 100 to get percentage
+		percentages = [
+			Math.round(yourShare * completionRatio * 100),
+			Math.round(othersShare * completionRatio * 100)
+		];
+	}
 
 	return new Response(JSON.stringify({ percentages }), {
 		status: 200,

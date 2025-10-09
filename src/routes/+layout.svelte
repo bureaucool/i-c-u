@@ -31,7 +31,9 @@
 	});
 
 	// Realtime: listen for changes to tasks and treats and invalidate
-	if (data.user && data.groupId) {
+	$effect(() => {
+		if (!data.user || !data.groupId) return;
+
 		const supabase = createSupabaseBrowser();
 
 		let invalidateTimer: number | null = null;
@@ -42,6 +44,7 @@
 				await invalidateAll();
 			}, 200) as unknown as number;
 		}
+
 		const channel = supabase
 			.channel('db-changes')
 			.on(
@@ -56,11 +59,11 @@
 			)
 			.subscribe();
 
-		$effect(() => () => {
+		return () => {
 			supabase.removeChannel(channel);
 			if (invalidateTimer != null) clearTimeout(invalidateTimer as unknown as number);
-		});
-	}
+		};
+	});
 </script>
 
 <svelte:head>

@@ -16,9 +16,9 @@
 	const perc = 0.25;
 	const DPR = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
 
-	// $effect(() => {
-	// 	console.log($percentages);
-	// });
+	$effect(() => {
+		console.log($percentages);
+	});
 
 	let easedPercentages = new Spring($percentages, { stiffness: 0.1, damping: 10 });
 
@@ -61,7 +61,8 @@
 		const rightProgress = Math.max(0, Math.min(1, (easedPercentages.current?.[1] || 0) / 100));
 
 		// Left half: spans from π (180°) to 3π/2 (270°)
-		if (leftProgress > 0) {
+		// Erase portion based on progress (less progress = more erased)
+		if (leftProgress < 1) {
 			ctx.beginPath();
 			ctx.moveTo(centerX, centerY);
 			ctx.arc(
@@ -77,7 +78,8 @@
 		}
 
 		// Right half: spans from 3π/2 (270°) to 2π (360°)
-		if (rightProgress > 0) {
+		// Erase portion based on progress (less progress = more erased)
+		if (rightProgress < 1) {
 			ctx.beginPath();
 			ctx.moveTo(centerX, centerY);
 			ctx.arc(
