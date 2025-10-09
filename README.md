@@ -162,8 +162,16 @@ pnpm run check
 
 ## Authentication & Admin
 
-- Auth via Supabase; SSR in `hooks.server.ts` using `@supabase/ssr`.
-- Users may have a `password_hash` when using local password auth flows.
+This app uses a **hybrid authentication system**:
+
+- **Supabase Auth** for session management and login (`supabase.auth.signInWithPassword`)
+- **Local `password_hash`** field in the `user` table for additional flexibility
+
+**Important**: When changing passwords, both systems must be kept in sync:
+
+- The `changePassword` function updates both the local `password_hash` AND Supabase Auth password
+- Password reset flow also updates both systems
+- Auth via Supabase; SSR in `hooks.server.ts` using `@supabase/ssr`
 
 ### Endpoints
 

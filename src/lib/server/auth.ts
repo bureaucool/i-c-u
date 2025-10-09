@@ -67,5 +67,15 @@ export async function changePassword(userId: number, newPassword: string, cookie
 	const passwordHash = await bcrypt.hash(newPassword, 10);
 	const supabase = cookies ? createSupabaseServer(cookies) : null;
 	if (!supabase) throw new Error('Supabase cookies context required');
+
+	// Update password_hash in local database
 	await supabase.from('user').update({ password_hash: passwordHash }).eq('id', userId);
+
+	// ALSO update password in Supabase Auth (if user has an auth session)
+	// This ensures both systems are in sync
+	const { data: sessionData } = await supabase.auth.getSession();
+	if (sessionData?.session) {
+		// User is authenticated, update Supabase Auth password too
+		await supabase.auth.updateUser({ password: newPassword });
+	}
 }

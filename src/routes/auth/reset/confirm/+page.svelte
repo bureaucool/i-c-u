@@ -39,12 +39,40 @@
 		try {
 			const supabase = createSupabaseBrowser();
 
-			// Update the password (user is already authenticated via OTP)
+			// Get current session to get user info
+			const { data: sessionData } = await supabase.auth.getSession();
+			const userEmail = sessionData?.session?.user?.email;
+
+			// Update the password in Supabase Auth (user is already authenticated via OTP)
 			const { error: updateError } = await supabase.auth.updateUser({
 				password: newPassword
 			});
 
 			if (updateError) throw updateError;
+
+			// Also update password_hash in local database for consistency
+			// (so both auth systems stay in sync)
+			if (userEmail) {
+				try {
+					const { data: localUser } = await supabase
+						.from('user')
+						.select('id')
+						.eq('email', userEmail)
+						.maybeSingle();
+
+					if (localUser) {
+						// Call the password change API to update local hash
+						await fetch(`/api/users/${(localUser as any).id}/password`, {
+							method: 'PATCH',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ newPassword })
+						});
+					}
+				} catch (e) {
+					// Log error but don't fail the password reset
+					console.error('Failed to update local password hash:', e);
+				}
+			}
 
 			msg = 'Password updated successfully! Redirecting to login...';
 			newPassword = '';
