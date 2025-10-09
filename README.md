@@ -181,16 +181,40 @@ pnpm run check
 
 For password reset to work properly, you need to configure Supabase:
 
-1. **Add Redirect URL in Supabase Dashboard**:
+1. **Disable PKCE for Password Recovery** (Critical):
+   - Go to Authentication > Settings in your Supabase Dashboard
+   - Scroll to "Auth Flow" or "Advanced Settings"
+   - Set "Flow Type" or "Auth Providers" to use "implicit" flow for password recovery
+   - OR ensure "Enable PKCE Flow" is turned OFF
+   - **Note**: Some Supabase projects have PKCE enabled by default, which causes the error "both auth code and code verifier should be non-empty" for password recovery
+
+2. **Add Redirect URL in Supabase Dashboard**:
    - Go to Authentication > URL Configuration
    - Add your app URL to the "Redirect URLs" list:
      - Development: `http://localhost:5173/auth/reset`
      - Production: `https://yourdomain.com/auth/reset`
 
-2. **Email Templates** (Optional):
+3. **Email Templates**:
    - Go to Authentication > Email Templates
-   - Customize the "Reset Password" template
-   - Ensure the link points to `{{ .SiteURL }}/auth/reset`
+   - Select the "Reset Password" template
+   - Ensure the link uses: `{{ .SiteURL }}/auth/reset`
+   - The default template should work, but verify it's not using a custom PKCE flow
 
-3. **Environment Variables**:
+4. **Environment Variables**:
    - Ensure `PUBLIC_APP_URL` is set correctly (see Environment section above)
+
+**Troubleshooting**:
+If you see the error "invalid request: both auth code and code verifier should be non-empty", this means PKCE flow is enabled for password recovery. Password recovery should use the implicit flow (hash fragments) instead. Check step 1 above.
+
+**How to Fix the PKCE Error**:
+
+1. Log into your [Supabase Dashboard](https://app.supabase.com)
+2. Select your project
+3. Go to **Authentication** → **Settings**
+4. Look for "PKCE" or "Flow Type" settings
+5. For password recovery to work, you may need to:
+   - Disable PKCE globally, OR
+   - Configure PKCE to only apply to OAuth providers (not email/password)
+6. After making changes, request a new password reset email (old links won't work)
+
+If you cannot find PKCE settings in your dashboard, it might be automatically managed. In that case, the error handling in the code will show you a helpful message to contact support.

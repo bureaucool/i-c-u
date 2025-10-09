@@ -14,59 +14,106 @@
 		try {
 			const supabase = createSupabaseBrowser();
 
-			// Handle PKCE flow (modern Supabase Auth approach)
+			// First, check if Supabase has already detected and set up the session from URL
+			// This handles both hash fragments and query parameters automatically
+			const { data: existingSession } = await supabase.auth.getSession();
+			if (existingSession?.session) {
+				sessionEstablished = true;
+				loading = false;
+				return;
+			}
+
+			// Handle hash fragments (implicit flow - used for password recovery)
+			const hash = typeof window !== 'undefined' ? window.location.hash : '';
+			if (hash) {
+				const hashParams = new URLSearchParams(hash?.startsWith('#') ? hash.slice(1) : hash);
+				const accessToken = hashParams.get('access_token');
+				const refreshToken = hashParams.get('refresh_token');
+				const type = hashParams.get('type');
+				const errorDesc = hashParams.get('error_description');
+
+				// Check for errors in hash
+				if (errorDesc) {
+					err = decodeURIComponent(errorDesc);
+					loading = false;
+					return;
+				}
+
+				if (accessToken && refreshToken && type === 'recovery') {
+					const { data, error: sessionError } = await supabase.auth.setSession({
+						access_token: accessToken,
+						refresh_token: refreshToken
+					});
+					if (sessionError) {
+						err = sessionError.message || 'Failed to establish session.';
+						loading = false;
+						return;
+					}
+					if (data?.session) {
+						sessionEstablished = true;
+						loading = false;
+						// Clean up URL
+						window.history.replaceState({}, document.title, window.location.pathname);
+						return;
+					}
+				}
+			}
+
+			// Handle PKCE flow (query parameter with code) - only if not a PKCE error
 			const urlParams = new URLSearchParams(
 				typeof window !== 'undefined' ? window.location.search : ''
 			);
 			const code = urlParams.get('code');
+			const errorParam = urlParams.get('error');
+			const errorDescParam = urlParams.get('error_description');
+
+			// Check for errors in query params
+			if (errorParam || errorDescParam) {
+				err = errorDescParam
+					? decodeURIComponent(errorDescParam)
+					: errorParam || 'An error occurred';
+				// If it's a PKCE error, provide helpful message
+				if (err.includes('code verifier')) {
+					err =
+						'Password reset configuration error. Please contact support or try the workaround below.';
+				}
+				loading = false;
+				return;
+			}
 
 			if (code) {
-				// Exchange the code for a session
-				const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-				if (exchangeError) {
-					err =
-						exchangeError.message ||
-						'Failed to establish recovery session. Please use a fresh link.';
-					loading = false;
-					return;
-				}
-				if (data?.session) {
-					sessionEstablished = true;
-					loading = false;
-					return;
-				}
-			}
-
-			// Fallback: handle legacy token-based flow (hash fragments)
-			const hash = typeof window !== 'undefined' ? window.location.hash : '';
-			const hashParams = new URLSearchParams(hash?.startsWith('#') ? hash.slice(1) : hash);
-			const accessToken = hashParams.get('access_token');
-			const refreshToken = hashParams.get('refresh_token');
-
-			if (accessToken && refreshToken) {
-				const { data, error: sessionError } = await supabase.auth.setSession({
-					access_token: accessToken,
-					refresh_token: refreshToken
-				});
-				if (sessionError) {
-					err = sessionError.message || 'Failed to establish session.';
-					loading = false;
-					return;
-				}
-				if (data?.session) {
-					sessionEstablished = true;
+				try {
+					// Exchange the code for a session
+					const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+					if (exchangeError) {
+						// If PKCE error, provide helpful message
+						if (exchangeError.message?.includes('code verifier')) {
+							err =
+								'Password reset is misconfigured (PKCE error). Please ask an admin to disable PKCE for password recovery in Supabase Dashboard > Authentication > Settings.';
+						} else {
+							err =
+								exchangeError.message ||
+								'Failed to establish recovery session. Please use a fresh link.';
+						}
+						loading = false;
+						return;
+					}
+					if (data?.session) {
+						sessionEstablished = true;
+						loading = false;
+						// Clean up URL
+						window.history.replaceState({}, document.title, window.location.pathname);
+						return;
+					}
+				} catch (e: any) {
+					err = e?.message || 'Failed to process reset link.';
 					loading = false;
 					return;
 				}
 			}
 
-			// Final check: verify if we have an existing session
-			const { data: sessionData } = await supabase.auth.getSession();
-			if (sessionData?.session) {
-				sessionEstablished = true;
-			} else {
-				err = 'Auth session missing. Please reopen the reset link from your email.';
-			}
+			// If we get here, no valid session could be established
+			err = 'Invalid or expired reset link. Please request a new password reset.';
 		} catch (e: any) {
 			err = e?.message || 'An unexpected error occurred. Please try again.';
 		} finally {
