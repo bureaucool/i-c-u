@@ -17,8 +17,11 @@ Define these variables in `.env`:
 ```
 PUBLIC_SUPABASE_URL="https://<your-project>.supabase.co"
 PUBLIC_SUPABASE_ANON_KEY="<your-anon-key>"
+PUBLIC_APP_URL="http://localhost:5173"  # Use production URL in deployment (required for password reset)
 EMOJI_API_ACCESS_KEY="<your-emoji-api-key>"
 ```
+
+**Important for Password Reset**: The `PUBLIC_APP_URL` must be set to your application's URL. In production, this should be your domain (e.g., `https://yourdomain.com`). This URL is used for password reset email links.
 
 Emoji API used: [`emoji-api.com`](https://emoji-api.com/emojis?search=computer&access_key=95f65a51a5b9a9647391bbe94cb0ccf34f5125a7)
 
@@ -162,12 +165,32 @@ pnpm run check
 - Auth via Supabase; SSR in `hooks.server.ts` using `@supabase/ssr`.
 - Users may have a `password_hash` when using local password auth flows.
 
-Endpoints:
+### Endpoints
 
 - `POST /api/auth` — body: `{ "email": string, "password": string }` — signs in via Supabase
 - `DELETE /api/auth` — signs out
+- `POST /api/auth/reset` — body: `{ "email": string }` — sends password reset email
 
-Routes:
+### Routes
 
 - `/setup` — Create a new `group` and the first `user` (name, email, password). After creation, a membership is added and the user is logged in.
 - `/settings` — Update group title and adjust the current user's availability. Also supports changing the logged-in user's password.
+- `/auth/reset` — Password reset page (accessed via email link)
+
+### Password Reset Configuration
+
+For password reset to work properly, you need to configure Supabase:
+
+1. **Add Redirect URL in Supabase Dashboard**:
+   - Go to Authentication > URL Configuration
+   - Add your app URL to the "Redirect URLs" list:
+     - Development: `http://localhost:5173/auth/reset`
+     - Production: `https://yourdomain.com/auth/reset`
+
+2. **Email Templates** (Optional):
+   - Go to Authentication > Email Templates
+   - Customize the "Reset Password" template
+   - Ensure the link points to `{{ .SiteURL }}/auth/reset`
+
+3. **Environment Variables**:
+   - Ensure `PUBLIC_APP_URL` is set correctly (see Environment section above)
