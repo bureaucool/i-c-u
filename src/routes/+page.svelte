@@ -128,7 +128,7 @@
 
 {#if !data.user}
 	<section class="flex h-full w-full flex-col items-center justify-center gap-y-5">
-		<h2>i-c-u</h2>
+		<h2 class="text-3xl">i-c-u</h2>
 		<p>Collaborative task manager, focused on appreciation and balance</p>
 	</section>
 
