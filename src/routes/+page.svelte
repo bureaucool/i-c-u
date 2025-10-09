@@ -282,113 +282,113 @@
 					<button type="submit">Create</button>
 				</form>
 			</div>
-		{/if}
+		{:else}
+			{#if (data.pendingTreats ?? []).length > 0}
+				{#each data.pendingTreats ?? [] as tr}
+					<Floating classes="z-50">
+						<AcceptTreat onAccept={(id) => (acceptingTreatId = id)} {tr} {acceptingTreatId} />
+					</Floating>
+				{/each}
+			{/if}
 
-		{#if (data.pendingTreats ?? []).length > 0}
-			{#each data.pendingTreats ?? [] as tr}
-				<Floating classes="z-50">
-					<AcceptTreat onAccept={(id) => (acceptingTreatId = id)} {tr} {acceptingTreatId} />
-				</Floating>
-			{/each}
-		{/if}
-
-		{#if (acceptedNotices ?? []).length > 0}
-			{#each acceptedNotices as tr}
-				<Floating classes="z-50">
-					<div class="flex items-center gap-x-3 rounded-lg bg-white p-3 shadow">
-						<span class="text-2xl">{tr.emoji ?? '♥️'}</span>
-						<div class="flex flex-col">
-							<strong>Accepted</strong>
-							<span class="opacity-80">{tr.title} ({tr.valueMinutes} min)</span>
+			{#if (acceptedNotices ?? []).length > 0}
+				{#each acceptedNotices as tr}
+					<Floating classes="z-50">
+						<div class="flex items-center gap-x-3 rounded-lg bg-white p-3 shadow">
+							<span class="text-2xl">{tr.emoji ?? '♥️'}</span>
+							<div class="flex flex-col">
+								<strong>Accepted</strong>
+								<span class="opacity-80">{tr.title} ({tr.valueMinutes} min)</span>
+							</div>
+							<button class="ml-2" onclick={() => acknowledgeAccepted(tr.id)}>Dismiss</button>
 						</div>
-						<button class="ml-2" onclick={() => acknowledgeAccepted(tr.id)}>Dismiss</button>
-					</div>
-				</Floating>
-			{/each}
+					</Floating>
+				{/each}
+			{/if}
+			<section>
+				<h2>Today</h2>
+				{#if tasksToday.length === 0}
+					<p class="text-3xl opacity-30">No tasks</p>
+				{:else}
+					<ul>
+						{#each tasksToday as t}
+							<li>
+								<TaskItem
+									users={data.users ?? []}
+									currentUserId={data.user?.id ?? -1}
+									task={t}
+									clickComplete={() => openComplete(t)}
+									clickEdit={() => openEdit(t)}
+								/>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</section>
+			<section>
+				<h2>Upcoming</h2>
+				{#if tasksUpcoming.length === 0}
+					<p class="text-3xl opacity-30">No tasks</p>
+				{:else}
+					<ul>
+						{#each tasksUpcoming as t}
+							<li>
+								<TaskItem
+									users={data.users ?? []}
+									currentUserId={data.user?.id ?? -1}
+									task={t}
+									clickComplete={() => openComplete(t)}
+									clickEdit={() => openEdit(t)}
+								/>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</section>
+
+			<section>
+				<h2>Unscheduled</h2>
+				{#if tasksNoDate.length === 0}
+					<p class="text-3xl opacity-30">No tasks</p>
+				{:else}
+					<ul>
+						{#each tasksNoDate as t}
+							<li>
+								<TaskItem
+									users={data.users ?? []}
+									currentUserId={data.user?.id ?? -1}
+									task={t}
+									clickComplete={() => openComplete(t)}
+									clickEdit={() => openEdit(t)}
+								/>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</section>
+
+			<section>
+				<h2>Completed</h2>
+				{#if (data.completedTasks ?? []).length === 0}
+					<p class="text-3xl opacity-30">No tasks</p>
+				{:else}
+					<ul>
+						{#each data.completedTasks ?? [] as t}
+							<li>
+								<TaskItem
+									completed
+									users={data.users ?? []}
+									currentUserId={data.user?.id ?? -1}
+									task={t}
+									clickComplete={() => {}}
+									clickEdit={() => openCompletedOptions(t)}
+								/>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</section>
 		{/if}
-		<section>
-			<h2>Today</h2>
-			{#if tasksToday.length === 0}
-				<p class="text-3xl opacity-30">No tasks</p>
-			{:else}
-				<ul>
-					{#each tasksToday as t}
-						<li>
-							<TaskItem
-								users={data.users ?? []}
-								currentUserId={data.user?.id ?? -1}
-								task={t}
-								clickComplete={() => openComplete(t)}
-								clickEdit={() => openEdit(t)}
-							/>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
-		<section>
-			<h2>Upcoming</h2>
-			{#if tasksUpcoming.length === 0}
-				<p class="text-3xl opacity-30">No tasks</p>
-			{:else}
-				<ul>
-					{#each tasksUpcoming as t}
-						<li>
-							<TaskItem
-								users={data.users ?? []}
-								currentUserId={data.user?.id ?? -1}
-								task={t}
-								clickComplete={() => openComplete(t)}
-								clickEdit={() => openEdit(t)}
-							/>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
-
-		<section>
-			<h2>Unscheduled</h2>
-			{#if tasksNoDate.length === 0}
-				<p class="text-3xl opacity-30">No tasks</p>
-			{:else}
-				<ul>
-					{#each tasksNoDate as t}
-						<li>
-							<TaskItem
-								users={data.users ?? []}
-								currentUserId={data.user?.id ?? -1}
-								task={t}
-								clickComplete={() => openComplete(t)}
-								clickEdit={() => openEdit(t)}
-							/>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
-
-		<section>
-			<h2>Completed</h2>
-			{#if (data.completedTasks ?? []).length === 0}
-				<p class="text-3xl opacity-30">No tasks</p>
-			{:else}
-				<ul>
-					{#each data.completedTasks ?? [] as t}
-						<li>
-							<TaskItem
-								completed
-								users={data.users ?? []}
-								currentUserId={data.user?.id ?? -1}
-								task={t}
-								clickComplete={() => {}}
-								clickEdit={() => openCompletedOptions(t)}
-							/>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
 	</section>
 
 	<div class="pointer-events-none fixed inset-x-3 bottom-3 flex justify-center">
