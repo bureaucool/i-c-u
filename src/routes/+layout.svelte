@@ -7,6 +7,8 @@
 	import { percentages, rangeDays } from '$lib/stores/states';
 	import { createSupabaseBrowser } from '$lib';
 	import { invalidateAll } from '$app/navigation';
+	import { browser } from '$app/environment';
+	import { untrack } from 'svelte';
 
 	let {
 		children,
@@ -23,6 +25,48 @@
 	} = $props();
 
 	let currentGroupTitle = $derived(data.activeGroup?.title ?? '');
+	let isOnline = $state(true);
+
+	// Register service worker for PWA
+	// Using untrack to ensure this only runs once on mount
+	$effect(() => {
+		untrack(() => {
+			if (browser && 'serviceWorker' in navigator) {
+				navigator.serviceWorker
+					.register('/service-worker.js')
+					.then((registration) => {
+						console.log('Service Worker registered:', registration);
+					})
+					.catch((error) => {
+						console.error('Service Worker registration failed:', error);
+					});
+			}
+		});
+	});
+
+	// Track online/offline status
+	$effect(() => {
+		if (!browser) return;
+
+		// Set initial status
+		isOnline = navigator.onLine;
+
+		const handleOnline = () => {
+			isOnline = true;
+		};
+
+		const handleOffline = () => {
+			isOnline = false;
+		};
+
+		window.addEventListener('online', handleOnline);
+		window.addEventListener('offline', handleOffline);
+
+		return () => {
+			window.removeEventListener('online', handleOnline);
+			window.removeEventListener('offline', handleOffline);
+		};
+	});
 
 	// Keep global stores in sync
 	$effect(() => {
@@ -100,5 +144,19 @@
 		</div>
 	</div>
 {/key}
+
+<!-- Offline Indicator -->
+{#if !isOnline}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+		transition:fade={{ duration: 200 }}
+	>
+		<div class="mx-4 max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
+			<div class="mb-4 text-6xl">📡</div>
+			<h2 class="mb-2 text-2xl font-bold text-gray-900">You're Offline</h2>
+			<p class="text-gray-600">Please check your internet connection to use this app.</p>
+		</div>
+	</div>
+{/if}
 
 <div class="rainbow-bg fixed inset-0"></div>
