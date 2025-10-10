@@ -40,15 +40,15 @@
 
 	let listOpen = $state<boolean>(false);
 
-	// One-time acceptance notification (for creator)
-	let acceptedNotices = $state((data as any).acceptedTreatsToNotify ?? []);
+	// One-time acceptance notification (for creator) - reactive to data changes
+	let acceptedNotices = $derived((data as any).acceptedTreatsToNotify ?? []);
 	async function acknowledgeAccepted(id: number) {
 		await fetch(`/api/treats/${id}`, {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ acknowledgeAccepted: true })
 		});
-		acceptedNotices = acceptedNotices.filter((t: any) => t.id !== id);
+		await invalidateAll();
 	}
 
 	let loginOpen = $state(false);

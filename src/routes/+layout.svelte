@@ -45,24 +45,33 @@
 			}, 200) as unknown as number;
 		}
 
-		// Use unique channel name per group
-		const channelName = `group-${data.groupId}-changes`;
-		const channel = supabase
-			.channel(channelName)
+		// Use unique channel name per group - use separate channels for better debugging
+		const taskChannelName = `group-${data.groupId}-tasks`;
+		const treatChannelName = `group-${data.groupId}-treats`;
+
+		const taskChannel = supabase
+			.channel(taskChannelName)
 			.on(
 				'postgres_changes',
 				{ event: '*', schema: 'public', table: 'task', filter: `group_id=eq.${data.groupId}` },
 				scheduleInvalidate
 			)
-			.on(
-				'postgres_changes',
-				{ event: '*', schema: 'public', table: 'treat', filter: `group_id=eq.${data.groupId}` },
-				scheduleInvalidate
-			)
+			.subscribe();
+
+		const treatChannel = supabase
+			.channel(treatChannelName)
+			.on('postgres_changes', { event: '*', schema: 'public', table: 'treat' }, (payload) => {
+				// Client-side filter since server-side filter had issues
+				const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
+				if (groupId === data.groupId) {
+					scheduleInvalidate();
+				}
+			})
 			.subscribe();
 
 		return () => {
-			supabase.removeChannel(channel);
+			supabase.removeChannel(taskChannel);
+			supabase.removeChannel(treatChannel);
 			if (invalidateTimer != null) clearTimeout(invalidateTimer as unknown as number);
 		};
 	});

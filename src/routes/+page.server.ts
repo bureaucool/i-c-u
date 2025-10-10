@@ -71,7 +71,8 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 				.select('*')
 				.eq('group_id', gid)
 				.eq('to_user_id', locals.user.id)
-				.eq('accepted', false),
+				.eq('accepted', false)
+				.is('declined_at', null),
 			supabase
 				.from('treat')
 				.select('*')

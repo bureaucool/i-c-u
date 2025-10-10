@@ -27,8 +27,8 @@ export const PATCH: RequestHandler = async ({ params, request, locals, cookies }
 	if (!existing) throw error(404, 'treat not found');
 
 	// Permissions: recipient can accept/decline, creator can acknowledge notification only
-	const isRecipient = (locals.user?.id ?? 0) === existing.toUserId;
-	const isCreator = (locals.user?.id ?? 0) === existing.fromUserId;
+	const isRecipient = (locals.user?.id ?? 0) === existing.to_user_id;
+	const isCreator = (locals.user?.id ?? 0) === existing.from_user_id;
 	if ((accepted !== undefined || declined !== undefined) && !isRecipient) {
 		throw error(403, 'only recipient can modify acceptance');
 	}
