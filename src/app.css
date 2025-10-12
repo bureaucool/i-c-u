@@ -74,5 +74,5 @@ body {
 }
 
 :global(.mobileTopSaveDistance) {
-	top: calc(env(safe-area-inset-top, 0px) + 3rem);
+	top: calc(env(safe-area-inset-top, 0px));
 }
