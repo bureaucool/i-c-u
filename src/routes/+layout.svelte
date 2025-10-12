@@ -38,10 +38,36 @@
 					.register('/service-worker.js')
 					.then((registration) => {
 						console.log('Service Worker registered:', registration);
+
+						// Check for updates every 60 seconds
+						setInterval(() => {
+							registration.update();
+						}, 60000);
+
+						// Listen for updates
+						registration.addEventListener('updatefound', () => {
+							const newWorker = registration.installing;
+							if (newWorker) {
+								newWorker.addEventListener('statechange', () => {
+									if (newWorker.state === 'activated') {
+										// New service worker activated, reload the page
+										console.log('New service worker activated, reloading...');
+										window.location.reload();
+									}
+								});
+							}
+						});
 					})
 					.catch((error) => {
 						console.error('Service Worker registration failed:', error);
 					});
+
+				// Listen for messages from service worker
+				navigator.serviceWorker.addEventListener('message', (event) => {
+					if (event.data?.type === 'RELOAD') {
+						window.location.reload();
+					}
+				});
 			}
 		});
 	});

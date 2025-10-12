@@ -135,7 +135,7 @@
 </script>
 
 {#if data.user}
-	<div class="pointer-events-none fixed inset-x-0 bottom-3 z-40 md:top-3">
+	<div class="pointer-events-none fixed inset-x-0 bottom-3 z-40 w-full md:top-3">
 		<div class="mx-auto flex max-w-xl justify-end px-7">
 			<a href="/settings" aria-label="Settings" class="pointer-events-auto p-3"
 				><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
@@ -160,6 +160,8 @@
 			aria-label="Close login dialog"
 			onclick={() => {
 				loginOpen = false;
+				signupOpen = false;
+				resetOpen = false;
 				listOpen = false;
 			}}
 			onkeydown={(e) => (e.key === 'Escape' ? (loginOpen = false) : null)}
@@ -212,7 +214,9 @@
 			tabindex="0"
 			aria-label="Close signup dialog"
 			onclick={() => {
+				loginOpen = false;
 				signupOpen = false;
+				resetOpen = false;
 				listOpen = false;
 			}}
 			onkeydown={(e) => (e.key === 'Escape' ? (signupOpen = false) : null)}
@@ -300,6 +304,8 @@
 			tabindex="0"
 			aria-label="Close reset dialog"
 			onclick={() => {
+				loginOpen = false;
+				signupOpen = false;
 				resetOpen = false;
 				listOpen = false;
 			}}
@@ -346,6 +352,19 @@
 			</div>
 		</div>
 	{:else if listOpen}
+		<div
+			class="fixed inset-0 z-10 h-full w-full"
+			role="button"
+			tabindex="0"
+			aria-label="Close reset dialog"
+			onclick={() => {
+				loginOpen = false;
+				signupOpen = false;
+				resetOpen = false;
+				listOpen = false;
+			}}
+			onkeydown={(e) => (e.key === 'Escape' ? (resetOpen = false) : null)}
+		></div>
 		<div class="pointer-events-none fixed inset-0 top-3 z-40">
 			<div class="item-end mx-auto flex w-60 flex-col gap-y-0.5 px-7">
 				<Button big={false} onclick={() => (loginOpen = true)}>Log in</Button>
@@ -355,7 +374,7 @@
 			</div>
 		</div>
 	{:else}
-		<div class="pointer-events-none fixed inset-0 top-3 z-40">
+		<div class="pointer-events-none fixed inset-x-0 bottom-3 z-40 md:top-3">
 			<div class="mx-auto flex max-w-xl justify-end px-7">
 				<span onclick={() => (listOpen = true)} class="pointer-events-auto p-3"
 					><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></span
