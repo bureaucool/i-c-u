@@ -12,6 +12,7 @@
 
 	import Portal from 'svelte-portal';
 	import Fireworks from '$lib/components/fireworks.svelte';
+	import { addNotification, addNotificationBig } from '$lib/stores/notifications';
 
 	let {
 		data
@@ -29,12 +30,7 @@
 
 	let showAdd = $state(false);
 	let formType: 'task' | 'treat' = $state('task');
-	let loginMsg = $state<string | null>(null);
-	let loginErr = $state<string | null>(null);
-	let signupMsg = $state<string | null>(null);
-	let signupErr = $state<string | null>(null);
-	let addMsg = $state<string | null>(null);
-	let addErr = $state<string | null>(null);
+
 	// Floating treat accept flow state
 	let acceptingTreatId: number | null = $state(null);
 
@@ -54,6 +50,7 @@
 	let loginOpen = $state(false);
 	let signupOpen = $state(false);
 	let resetOpen = $state(false);
+	let submitting = $state(false);
 
 	$effect(() => {
 		if (!showAdd) {
@@ -172,7 +169,9 @@
 					class="flex flex-col gap-y-2"
 					onsubmit={async (e) => {
 						e.preventDefault();
-						loginMsg = loginErr = null;
+						if (submitting) return;
+						submitting = true;
+
 						const form = new FormData(e.currentTarget as HTMLFormElement);
 						const body = Object.fromEntries(form.entries());
 						const res = await fetch('/api/auth', {
@@ -181,21 +180,25 @@
 							body: JSON.stringify(body)
 						});
 						if (res.ok) {
-							loginMsg = 'Logged in. Reloading...';
 							loginOpen = false;
-							location.reload();
+							invalidateAll();
+							submitting = false;
 						} else {
 							const err = await res.json().catch(() => ({}));
-							loginErr = err?.error || err?.message || 'Login failed';
+							addNotification({
+								id: Date.now().toString(),
+								createdAt: Date.now(),
+								message: err?.error || err?.message || 'Login failed',
+								type: 'error'
+							});
+							submitting = false;
 						}
 					}}
 				>
 					<input name="email" type="email" placeholder="Email" required />
 					<input name="password" type="password" placeholder="Password" required />
-					<Button big={false} type="submit">Log in</Button>
+					<Button big={false} type="submit" disabled={submitting}>Log in</Button>
 				</form>
-				{#if loginMsg}<p>{loginMsg}</p>{/if}
-				{#if loginErr}<p>{loginErr}</p>{/if}
 			</div>
 		</div>
 	{:else if signupOpen}
@@ -215,18 +218,30 @@
 				<form
 					class="flex flex-col gap-y-2"
 					onsubmit={async (e) => {
+						if (submitting) return;
 						e.preventDefault();
-						signupMsg = signupErr = null;
+						submitting = true;
+
 						const form = new FormData(e.currentTarget as HTMLFormElement);
 						const body = Object.fromEntries(form.entries());
 						const password = String((body as any).password ?? '');
 						const confirm = String((body as any).confirmPassword ?? '');
 						if (password.length < 8) {
-							signupErr = 'Password must be at least 8 characters';
+							addNotification({
+								id: Date.now().toString(),
+								createdAt: Date.now(),
+								message: 'Password must be at least 8 characters',
+								type: 'error'
+							});
 							return;
 						}
 						if (password !== confirm) {
-							signupErr = 'Passwords do not match';
+							addNotification({
+								id: Date.now().toString(),
+								createdAt: Date.now(),
+								message: 'Passwords do not match',
+								type: 'error'
+							});
 							return;
 						}
 						const res = await fetch('/api/auth/signup', {
@@ -235,10 +250,22 @@
 							body: JSON.stringify(body)
 						});
 						if (res.ok) {
-							signupMsg = 'Signed up. Check your email if confirmation is required, then log in.';
+							addNotification({
+								id: Date.now().toString(),
+								createdAt: Date.now(),
+								message: 'Signed up. Check your email if confirmation is required, then log in.',
+								type: 'success'
+							});
+							submitting = false;
 						} else {
 							const err = await res.json().catch(() => ({}));
-							signupErr = err?.error || err?.message || 'Sign up failed';
+							addNotification({
+								id: Date.now().toString(),
+								createdAt: Date.now(),
+								message: err?.error || err?.message || 'Sign up failed',
+								type: 'error'
+							});
+							submitting = false;
 						}
 					}}
 				>
@@ -258,10 +285,8 @@
 						minlength="8"
 						required
 					/>
-					<Button big={false} type="submit">Sign up</Button>
+					<Button big={false} type="submit" disabled={submitting}>Sign up</Button>
 				</form>
-				{#if signupMsg}<p>{signupMsg}</p>{/if}
-				{#if signupErr}<p>{signupErr}</p>{/if}
 			</div>
 		</div>
 	{:else if resetOpen}
@@ -281,8 +306,10 @@
 				<form
 					class="flex flex-col gap-y-2"
 					onsubmit={async (e) => {
+						if (submitting) return;
 						e.preventDefault();
-						loginMsg = loginErr = null;
+						submitting = true;
+
 						const form = new FormData(e.currentTarget as HTMLFormElement);
 						const body = Object.fromEntries(form.entries());
 						const res = await fetch('/api/auth/reset', {
@@ -290,19 +317,28 @@
 							headers: { 'Content-Type': 'application/json' },
 							body: JSON.stringify(body)
 						});
+						submitting = false;
 						if (res.ok) {
-							loginMsg = 'If the email exists, a reset link was sent.';
+							addNotification({
+								id: Date.now().toString(),
+								createdAt: Date.now(),
+								message: 'If the email exists, a reset link was sent.',
+								type: 'success'
+							});
 						} else {
 							const err = await res.json().catch(() => ({}));
-							loginErr = err?.error || err?.message || 'Failed to send reset email';
+							addNotification({
+								id: Date.now().toString(),
+								createdAt: Date.now(),
+								message: err?.error || err?.message || 'Failed to send reset email',
+								type: 'error'
+							});
 						}
 					}}
 				>
 					<input name="email" type="email" placeholder="Email" required />
-					<Button big={false} type="submit">Send reset link</Button>
+					<Button big={false} type="submit" disabled={submitting}>Send reset link</Button>
 				</form>
-				{#if loginMsg}<p>{loginMsg}</p>{/if}
-				{#if loginErr}<p>{loginErr}</p>{/if}
 			</div>
 		</div>
 	{:else if listOpen}
@@ -340,6 +376,12 @@
 						});
 						if (res.ok) {
 							await invalidateAll();
+							addNotification({
+								id: Date.now().toString(),
+								createdAt: Date.now(),
+								message: 'Group created',
+								type: 'success'
+							});
 						}
 					}}
 				>
@@ -551,6 +593,12 @@
 								if (ok) {
 									editOpen = false;
 									invalidateAll();
+
+									addNotificationBig({
+										id: Date.now().toString(),
+										message: '⚙️',
+										createdAt: Date.now()
+									});
 								}
 							}}
 							onDelete={async () => {
@@ -574,7 +622,6 @@
 								showAdd = false;
 							}}
 							onSave={async (payload) => {
-								addMsg = addErr = null;
 								const res = await fetch('/api/tasks', {
 									method: 'POST',
 									headers: { 'Content-Type': 'application/json' },
@@ -584,8 +631,19 @@
 									showAdd = false;
 
 									invalidateAll();
+
+									addNotificationBig({
+										id: Date.now().toString(),
+										message: '⚙️',
+										createdAt: Date.now()
+									});
 								} else {
-									addErr = 'Failed to create task';
+									addNotification({
+										id: Date.now().toString(),
+										createdAt: Date.now(),
+										message: 'Failed to create task',
+										type: 'error'
+									});
 								}
 							}}
 						/>
@@ -598,27 +656,32 @@
 							showAdd = false;
 						}}
 						onSave={async (payload) => {
-							addMsg = addErr = null;
 							const res = await fetch('/api/treats', {
 								method: 'POST',
 								headers: { 'Content-Type': 'application/json' },
 								body: JSON.stringify(payload)
 							});
 							if (res.ok) {
-								addMsg = 'Treat created';
 								showAdd = false;
+								addNotificationBig({
+									id: Date.now().toString(),
+									message: '❤️',
+									createdAt: Date.now()
+								});
 
 								invalidateAll();
 							} else {
 								const err = await res.json().catch(() => ({}));
-								addErr = err?.error || err?.message || 'Failed to create treat';
+								addNotification({
+									id: Date.now().toString(),
+									createdAt: Date.now(),
+									message: err?.error || err?.message || 'Failed to create treat',
+									type: 'error'
+								});
 							}
 						}}
 					/>
 				{/if}
-
-				{#if addMsg}<p>{addMsg}</p>{/if}
-				{#if addErr}<p>{addErr}</p>{/if}
 			</div>
 		</div>
 	{/if}

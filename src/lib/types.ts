@@ -33,7 +33,14 @@ export type Treat = {
 };
 
 export type Notification = {
+	id: string;
 	message: string;
 	createdAt: number;
 	type: 'info' | 'error' | 'success';
+};
+
+export type NotificationBig = {
+	id: string;
+	message: string;
+	createdAt: number;
 };

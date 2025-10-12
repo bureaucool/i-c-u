@@ -29,6 +29,7 @@
 	onMount(() => {
 		if ($page.url.searchParams.get('reset_success') === 'true') {
 			addNotification({
+				id: Date.now().toString(),
 				createdAt: Date.now(),
 				message: 'You can now change your password below.',
 				type: 'success'
@@ -59,12 +60,14 @@
 				const res = await fetch('?/updateGroup', { method: 'POST', body: form });
 				if (res.ok)
 					addNotification({
+						id: Date.now().toString(),
 						createdAt: Date.now(),
 						message: 'Group title updated',
 						type: 'success'
 					});
 				else
 					addNotification({
+						id: Date.now().toString(),
 						createdAt: Date.now(),
 						message: 'Failed to update group',
 						type: 'error'
@@ -144,6 +147,7 @@
 								const res = await fetch('?/removeMember', { method: 'POST', body: form });
 								if (res.ok) {
 									addNotification({
+										id: Date.now().toString(),
 										createdAt: Date.now(),
 										message: 'Member removed',
 										type: 'success'
@@ -151,6 +155,7 @@
 									await invalidateAll();
 								} else {
 									addNotification({
+										id: Date.now().toString(),
 										createdAt: Date.now(),
 										message: 'Failed to remove member',
 										type: 'error'
@@ -172,6 +177,7 @@
 							const res = await fetch('?/addMember', { method: 'POST', body: form });
 							if (res.ok) {
 								addNotification({
+									id: Date.now().toString(),
 									createdAt: Date.now(),
 									message: 'Member added to the group',
 									type: 'success'
@@ -179,6 +185,7 @@
 								await invalidateAll();
 							} else {
 								addNotification({
+									id: Date.now().toString(),
 									createdAt: Date.now(),
 									message: 'Failed to add member',
 									type: 'error'
@@ -219,12 +226,14 @@
 				const res = await fetch('?/updateAvailability', { method: 'POST', body: form });
 				if (res.ok)
 					addNotification({
+						id: Date.now().toString(),
 						createdAt: Date.now(),
 						message: 'Availability updated',
 						type: 'success'
 					});
 				else
 					addNotification({
+						id: Date.now().toString(),
 						createdAt: Date.now(),
 						message: 'Failed to update availability',
 						type: 'error'
@@ -256,12 +265,14 @@
 				const res = await fetch('?/changePassword', { method: 'POST', body: form });
 				if (res.ok)
 					addNotification({
+						id: Date.now().toString(),
 						createdAt: Date.now(),
 						message: 'Password changed',
 						type: 'success'
 					});
 				else
 					addNotification({
+						id: Date.now().toString(),
 						createdAt: Date.now(),
 						message: 'Failed to change password',
 						type: 'error'
@@ -292,12 +303,14 @@
 					const res = await fetch('?/selectGroup', { method: 'POST', body: form });
 					if (res.ok)
 						addNotification({
+							id: Date.now().toString(),
 							createdAt: Date.now(),
 							message: 'Active group updated',
 							type: 'success'
 						});
 					else
 						addNotification({
+							id: Date.now().toString(),
 							createdAt: Date.now(),
 							message: 'Failed to set active group',
 							type: 'error'

@@ -2,6 +2,8 @@
 	import { removeNotification } from '$lib/stores/notifications';
 	import type { Notification } from '$lib/types';
 	import { onMount } from 'svelte';
+	import { sineInOut } from 'svelte/easing';
+	import { fade } from 'svelte/transition';
 
 	let {
 		notification
@@ -21,8 +23,14 @@
 	});
 </script>
 
-<div
-	class="flex flex-row items-center justify-center gap-x-2 rounded-b-lg bg-white p-4 leading-none"
+<button
+	aria-label={'notification'}
+	class="pointer-events-auto flex flex-row items-center justify-center gap-x-2 rounded-b-lg bg-white p-4 leading-none"
+	onclick={() => {
+		timeO && clearTimeout(timeO);
+		removeNotification(notification);
+	}}
+	transition:fade={{ duration: 200, easing: sineInOut }}
 >
 	{#if notification.type === 'success'}
 		<div class="">✅</div>
@@ -32,4 +40,4 @@
 		<div class="">ℹ️</div>
 	{/if}
 	<p class="text-sm">{notification.message}</p>
-</div>
+</button>

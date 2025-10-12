@@ -9,6 +9,8 @@
 	import { invalidateAll } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { untrack } from 'svelte';
+	import Notifications from '$lib/components/notifications.svelte';
+	import NotificationsBig from '$lib/components/notifications-big.svelte';
 
 	let {
 		children,
@@ -160,3 +162,6 @@
 {/if}
 
 <div class="rainbow-bg fixed inset-0"></div>
+
+<Notifications />
+<NotificationsBig />
