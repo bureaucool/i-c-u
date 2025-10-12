@@ -454,7 +454,7 @@
 			</section>
 
 			<section>
-				<h2>Unscheduled</h2>
+				<h2>Whenever</h2>
 				{#if tasksNoDate.length === 0}
 					<p class="text-3xl opacity-30">No tasks</p>
 				{:else}
@@ -475,7 +475,7 @@
 			</section>
 
 			<section>
-				<h2>Completed</h2>
+				<h2>💪 Completed</h2>
 				{#if (data.completedTasks ?? []).length === 0}
 					<p class="text-3xl opacity-30">No tasks</p>
 				{:else}
@@ -594,10 +594,11 @@
 									editOpen = false;
 									invalidateAll();
 
-									addNotificationBig({
+									addNotification({
 										id: Date.now().toString(),
-										message: '⚙️',
-										createdAt: Date.now()
+										createdAt: Date.now(),
+										message: 'Task updated',
+										type: 'success'
 									});
 								}
 							}}
