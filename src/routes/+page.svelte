@@ -51,6 +51,7 @@
 	let signupOpen = $state(false);
 	let resetOpen = $state(false);
 	let submitting = $state(false);
+	let loggingIn = $state(false);
 
 	$effect(() => {
 		if (!showAdd) {
@@ -171,6 +172,7 @@
 						e.preventDefault();
 						if (submitting) return;
 						submitting = true;
+						loggingIn = true;
 
 						const form = new FormData(e.currentTarget as HTMLFormElement);
 						const body = Object.fromEntries(form.entries());
@@ -183,6 +185,7 @@
 							loginOpen = false;
 							invalidateAll();
 							submitting = false;
+							loggingIn = false;
 						} else {
 							const err = await res.json().catch(() => ({}));
 							addNotification({
@@ -192,6 +195,7 @@
 								type: 'error'
 							});
 							submitting = false;
+							loggingIn = false;
 						}
 					}}
 				>
@@ -833,6 +837,15 @@
 						}}>Delete</Button
 					>
 				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if loggingIn}
+		<div class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
+			<div class="absolute inset-0 bg-white/80"></div>
+			<div class="relative z-10 flex flex-col gap-y-5 rounded-full bg-black/90 p-10 text-white">
+				<h3 class="text-3xl">Logging in...</h3>
 			</div>
 		</div>
 	{/if}
