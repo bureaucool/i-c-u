@@ -1,23 +1,23 @@
 <script lang="ts">
-	import type { Task, User } from '$lib/types';
+	import type { Task } from '$lib/types';
+	import MiniTag from './mini-tag.svelte';
+	import { beautifyDate } from '$lib/helpers';
 
 	let {
 		task,
 		completed = false,
 		clickComplete,
 		clickEdit,
-		users = [] as User[],
+		hideUser = false,
 		currentUserId = -1
 	}: {
 		task: Task;
 		completed?: boolean;
 		clickComplete: () => void;
 		clickEdit: () => void;
-		users?: User[];
+		hideUser?: boolean;
 		currentUserId?: number;
 	} = $props();
-
-	const userById = new Map(users.map((u) => [u.id, u] as const));
 
 	function formatScheduledDate(timestamp: number): string {
 		const date = new Date(timestamp);
@@ -36,34 +36,42 @@
 	}
 </script>
 
-<div class="flex flex-row items-center gap-x-1">
+<div class="flex flex-row items-center gap-x-3 rounded-full border border-neutral-300 px-6 py-2">
 	<button
 		aria-label="Complete task"
-		class="mb-2 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border-2 md:hover:scale-110 {completed
+		class=" flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 md:hover:scale-110 {completed
 			? 'bg-black'
 			: ''}"
 		onclick={clickComplete}>&nbsp;</button
 	>
+	<div>
+		<span class="flex-0 text-4xl">{task.emoji}</span>
+	</div>
+
 	<button
-		class="gap-y- flex cursor-pointer flex-col items-start md:hover:opacity-50"
+		class=" flex w-full cursor-pointer flex-col items-start md:hover:opacity-50"
 		onclick={clickEdit}
 	>
-		<div class="text-3xl leading-none">
-			<span>{task.emoji}</span>
-			<span>{task.title}</span>
-		</div>
-		<div class="">
-			<div class="pl-1">
-				{#if task.scheduledAt}
-					<span>{formatScheduledDate(task.scheduledAt)}</span>
-				{/if}
-				{#if task.assignedUserId != null}
-					<span class="rounded-full bg-neutral-200 px-3 py-0.25 leading-none"
-						>{task.assignedUserId === currentUserId
-							? 'You'
-							: (userById.get(task.assignedUserId)?.name ?? 'unknown')}</span
-					>
-				{/if}
+		<div class="flex w-full flex-row gap-x-2 text-3xl leading-none">
+			<div class="flex flex-col items-start justify-start gap-y-1">
+				<span class="block text-left">{task.title}</span>
+
+				<div class="flex w-full flex-row gap-x-0.5">
+					{#if !hideUser && task.assignedUserId != null && task.assignedUserId === currentUserId}
+						<MiniTag big>You</MiniTag>
+					{/if}
+					{#if task.scheduledAt}
+						{@const dateInfo = beautifyDate(task.scheduledAt)}
+						<MiniTag big bg="bg-green-100" text="text-green-700" title={dateInfo.formatted}
+							>{dateInfo.relative}</MiniTag
+						>
+						<MiniTag big bg="bg-neutral-100" text="text-neutral-500"
+							>{formatScheduledDate(task.scheduledAt)}</MiniTag
+						>
+					{:else}
+						<MiniTag big bg="bg-neutral-100" text="text-neutral-500">Whenever</MiniTag>
+					{/if}
+				</div>
 			</div>
 		</div>
 	</button>

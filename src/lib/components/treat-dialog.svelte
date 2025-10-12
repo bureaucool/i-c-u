@@ -30,12 +30,12 @@
 
 <form class="flex flex-col gap-y-10" onsubmit={submit}>
 	<div class="flex flex-col gap-y-0">
-		<span>Title</span>
+		<span class="text-neutral-500">Title</span>
 		<input class="text-3xl" name="title" placeholder="Title" required bind:value={title} />
 	</div>
 
 	<div class="flex flex-col gap-y-0">
-		<span>For</span>
+		<span class="text-neutral-500">For</span>
 		<select class="text-3xl" name="toUserId" required bind:value={toUserId}>
 			<option value="" disabled selected>Select</option>
 			{#each users.filter((u) => u.id !== (currentUserId ?? -1)) as u}
@@ -45,7 +45,7 @@
 	</div>
 
 	<div class="flex flex-col gap-y-0">
-		<span>Duration</span>
+		<span class="text-neutral-500">Duration</span>
 		<input
 			class="text-3xl"
 			name="valueMinutes"

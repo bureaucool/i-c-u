@@ -47,7 +47,12 @@
 	}
 </script>
 
-<dialog open bind:this={dialogRef} onclose={onClose}>
+<dialog
+	class="mx-5 rounded-2xl border border-neutral-300 bg-black px-3 py-2 text-xl"
+	open
+	bind:this={dialogRef}
+	onclose={onClose}
+>
 	{#if false}
 		<div>
 			<p>Pick an emoji</p>
@@ -64,7 +69,7 @@
 		<hr />
 	{/if}
 	<div>
-		<div>
+		<div class="flex flex-wrap gap-2">
 			{#each merged as e}
 				<button type="button" onclick={() => pickAndClose(e)}>{e}</button>
 			{/each}

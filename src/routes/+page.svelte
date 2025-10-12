@@ -13,6 +13,8 @@
 	import Portal from 'svelte-portal';
 	import Fireworks from '$lib/components/fireworks.svelte';
 	import { addNotification, addNotificationBig } from '$lib/stores/notifications';
+	import TaskList from '$lib/components/task-list.svelte';
+	import TreatAccepted from '$lib/components/treat-accepted.svelte';
 
 	let {
 		data
@@ -424,100 +426,42 @@
 			{#if (acceptedNotices ?? []).length > 0}
 				{#each acceptedNotices as tr}
 					<Floating classes="z-50">
-						<div class="flex items-center gap-x-3 rounded-lg bg-white p-3 shadow">
-							<span class="text-2xl">{tr.emoji ?? '♥️'}</span>
-							<div class="flex flex-col">
-								<strong>Accepted</strong>
-								<span class="opacity-80">{tr.title} ({tr.valueMinutes} min)</span>
-							</div>
-							<button class="ml-2" onclick={() => acknowledgeAccepted(tr.id)}>Dismiss</button>
-						</div>
+						<TreatAccepted {tr} {acknowledgeAccepted} />
 					</Floating>
 				{/each}
 			{/if}
-			<section>
-				<h2>Today</h2>
-				{#if tasksToday.length === 0}
-					<p class="text-3xl opacity-30">No tasks</p>
-				{:else}
-					<ul>
-						{#each tasksToday as t}
-							<li>
-								<TaskItem
-									users={data.users ?? []}
-									currentUserId={data.user?.id ?? -1}
-									task={t}
-									clickComplete={() => openComplete(t)}
-									clickEdit={() => openEdit(t)}
-								/>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</section>
-			<section>
-				<h2>Upcoming</h2>
-				{#if tasksUpcoming.length === 0}
-					<p class="text-3xl opacity-30">No tasks</p>
-				{:else}
-					<ul>
-						{#each tasksUpcoming as t}
-							<li>
-								<TaskItem
-									users={data.users ?? []}
-									currentUserId={data.user?.id ?? -1}
-									task={t}
-									clickComplete={() => openComplete(t)}
-									clickEdit={() => openEdit(t)}
-								/>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</section>
 
-			<section>
-				<h2>Whenever</h2>
-				{#if tasksNoDate.length === 0}
-					<p class="text-3xl opacity-30">No tasks</p>
-				{:else}
-					<ul>
-						{#each tasksNoDate as t}
-							<li>
-								<TaskItem
-									users={data.users ?? []}
-									currentUserId={data.user?.id ?? -1}
-									task={t}
-									clickComplete={() => openComplete(t)}
-									clickEdit={() => openEdit(t)}
-								/>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</section>
+			<TaskList
+				title="Today"
+				tasks={tasksToday}
+				userId={data.user?.id ?? -1}
+				{openComplete}
+				{openEdit}
+			/>
+			<TaskList
+				title="Upcoming"
+				tasks={tasksUpcoming}
+				userId={data.user?.id ?? -1}
+				{openComplete}
+				{openEdit}
+			/>
 
-			<section>
-				<h2>💪 Completed</h2>
-				{#if (data.completedTasks ?? []).length === 0}
-					<p class="text-3xl opacity-30">No tasks</p>
-				{:else}
-					<ul>
-						{#each data.completedTasks ?? [] as t}
-							<li>
-								<TaskItem
-									completed
-									users={data.users ?? []}
-									currentUserId={data.user?.id ?? -1}
-									task={t}
-									clickComplete={() => {}}
-									clickEdit={() => openCompletedOptions(t)}
-								/>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</section>
+			<TaskList
+				title="Whenever"
+				tasks={tasksNoDate}
+				userId={data.user?.id ?? -1}
+				{openComplete}
+				{openEdit}
+			/>
+
+			<TaskList
+				title="💪 Completed"
+				tasks={data.completedTasks ?? []}
+				userId={data.user?.id ?? -1}
+				hideUser={true}
+				{openComplete}
+				{openEdit}
+			/>
 		{/if}
 	</section>
 
@@ -534,7 +478,7 @@
 
 <Portal target="body">
 	{#if showAdd}
-		<div class="fixed inset-0 z-50 flex items-center justify-center px-5 md:px-10">
+		<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-5 md:px-10">
 			<div
 				class="absolute inset-0 bg-white/80"
 				transition:fade|global={{ duration: 100, easing: sineInOut }}
@@ -545,19 +489,15 @@
 				onclick={() => (showAdd = false)}
 			></button>
 			<div
-				class="relative z-30 flex w-full flex-col gap-y-10 rounded-xl bg-black/90 p-5 text-white"
+				class="relative z-30 flex w-full flex-col gap-y-6 rounded-4xl bg-black/90 p-5 text-white"
 				in:fly={{ duration: 500, easing: expoOut, y: 200 }}
 				out:fade={{ duration: 100, easing: sineInOut }}
 			>
 				{#if !editOpen}
-					<div class="flex flex-row justify-center gap-x-4 text-3xl">
-						<button
-							class="{formType !== 'task' ? 'opacity-50' : ''} cursor-pointer md:hover:scale-110"
-							onclick={() => (formType = 'task')}>🔨 Task</button
-						>
-						<button
-							class="{formType !== 'treat' ? 'opacity-50' : ''} cursor-pointer md:hover:scale-110"
-							onclick={() => (formType = 'treat')}>♥️ Treat</button
+					<div class="flex flex-row justify-center gap-x-4">
+						<Button grey={formType === 'task'} onclick={() => (formType = 'task')}>🔨 Task</Button>
+						<Button grey={formType === 'treat'} onclick={() => (formType = 'treat')}
+							>♥️ Treat</Button
 						>
 					</div>
 				{/if}
@@ -718,29 +658,22 @@
 				class="absolute inset-0 bg-white/80"
 				onclick={() => (completeOpen = false)}
 			></button>
-			<div
-				class="pointer-events-none absolute inset-x-0 top-1/5 z-20 flex w-full flex-row justify-center gap-x-10 px-10 text-[8rem]"
-				in:fade={{ duration: 500, easing: sineInOut, delay: 1500 }}
-				out:fade={{ duration: 100, easing: sineInOut }}
-			>
-				<span class="animate-twinkle">👁️</span>
-				<span>👁️</span>
-			</div>
+
 			<div class="pointer-events-none absolute inset-0 z-10">
 				<Fireworks />
 			</div>
 			<div
-				class="relative z-20 flex flex-col gap-y-5 rounded-full bg-black/90 p-10 text-white"
+				class="relative z-20 flex flex-col gap-y-10 rounded-4xl bg-black/90 px-8 py-5 text-white"
 				in:fly={{ duration: 500, easing: expoOut, y: 200 }}
 				out:fade={{ duration: 100, easing: sineInOut }}
 			>
-				<h3 class="text-center text-3xl">
+				<h3 class="flex flex-row justify-start gap-x-2 text-center text-3xl">
 					<span class="inline-block pr-1">{selectedTask.emoji}</span>{selectedTask.title}
-					<span class="inline-block pr-1 opacity-50">done</span>!
+					<span class="inline-block pr-1 opacity-50">done!</span>
 				</h3>
 
 				<form
-					class="flex flex-col gap-y-5"
+					class="flex flex-col gap-y-10"
 					onsubmit={async (e) => {
 						e.preventDefault();
 						if (selectedTask == null) return;
@@ -759,14 +692,18 @@
 						}
 					}}
 				>
-					<input
-						class="w-full text-3xl"
-						type="number"
-						min="0"
-						step="1"
-						placeholder="Minutes"
-						bind:value={completeMinutes}
-					/>
+					<div>
+						<span class="text-neutral-500">Duration</span>
+						<input
+							class="w-full text-3xl"
+							type="number"
+							min="0"
+							step="1"
+							placeholder="Minutes"
+							bind:value={completeMinutes}
+						/>
+					</div>
+
 					<div class="flex flex-row justify-center gap-x-2">
 						<Button grey type="submit">Save</Button>
 						<Button onclick={() => (completeOpen = false)}>Cancel</Button>

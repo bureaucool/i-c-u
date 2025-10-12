@@ -92,28 +92,31 @@
 				<span class="text-center text-xs leading-tight opacity-50">Auto populated by title</span>
 			{/if}
 		</div>
-		{#if foundEmojis.length > 0}
-			<div class="max-w-48">
-				{#each foundEmojis as emojiItem}
-					<button
-						type="button"
-						class={emoji === (emojiItem.emoji || emojiItem.character || '')
-							? 'rounded-2xl bg-white/80'
-							: ''}
-						onclick={() => (emoji = emojiItem.emoji || emojiItem.character || '')}
-					>
-						{emojiItem.emoji || emojiItem.character}
-					</button>
-				{/each}
-			</div>
-		{/if}
+
 		{#if !showPicker}
+			{#if foundEmojis.length > 0}
+				<div
+					class="mx-5 flex max-h-32 max-w-60 flex-wrap gap-1 overflow-y-auto rounded-2xl border border-neutral-300 px-3 py-2"
+				>
+					{#each foundEmojis as emojiItem}
+						<button
+							type="button"
+							class="px-2 {emoji === (emojiItem.emoji || emojiItem.character || '')
+								? 'rounded-2xl bg-white/80'
+								: ''}"
+							onclick={() => (emoji = emojiItem.emoji || emojiItem.character || '')}
+						>
+							{emojiItem.emoji || emojiItem.character}
+						</button>
+					{/each}
+				</div>
+			{/if}
 			<div class="flex flex-row justify-center gap-x-1">
 				<Button grey big={false} onclick={() => (showPicker = true)}>Browse</Button>
 				<Button grey big={false} onclick={() => (emoji = '')} disabled={emoji === ''}>Clear</Button>
 			</div>
 		{/if}
-		{#if showPicker}<Button grey big={false} onclick={() => (showPicker = false)}>hide</Button>{/if}
+		{#if showPicker}<Button grey big={false} onclick={() => (showPicker = false)}>Hide</Button>{/if}
 		{#if showPicker}
 			<EmojiPicker
 				onPick={(e) => {
@@ -128,7 +131,7 @@
 		{/if}
 	</div>
 	<div class="flex w-full flex-col gap-y-0">
-		<span>Title</span>
+		<span class="text-neutral-500">Title</span>
 		<input
 			class="w-full text-3xl"
 			placeholder="Title"
@@ -153,7 +156,7 @@
 
 	<div class="flex w-full flex-row gap-x-10">
 		<div class="flex grow flex-col gap-y-0">
-			<span>Date</span>
+			<span class="text-neutral-500">Date</span>
 			<input type="date" class="w-60 text-3xl" bind:value={date} />
 			{#if date}
 				<button
@@ -166,12 +169,12 @@
 			{/if}
 		</div>
 		<div class="flex grow flex-col gap-y-0">
-			<span>Time</span>
+			<span class="text-neutral-500">Time</span>
 			<input type="time" bind:value={time} />
 		</div>
 	</div>
 	<div class="flex w-full flex-col gap-y-0">
-		<span>Recurrence</span>
+		<span class="text-neutral-500">Recurrence</span>
 		<select
 			class="text-3xl"
 			bind:value={recurrenceType}
@@ -187,7 +190,7 @@
 		</select>
 	</div>
 	<div class={recurrenceType.includes('every_x_') ? 'flex w-full flex-col gap-y-0' : 'hidden'}>
-		<span>Every</span>
+		<span class="text-neutral-500">Every</span>
 		<input
 			class="text-3xl"
 			type="number"
@@ -199,7 +202,7 @@
 	</div>
 
 	<div class="flex w-full flex-col gap-y-0">
-		<span>Assigned to</span>
+		<span class="text-neutral-500">Assigned to</span>
 		<select
 			class="text-3xl"
 			bind:value={assignedUserId}

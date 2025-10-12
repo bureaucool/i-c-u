@@ -2,12 +2,23 @@
 	import type { Snippet } from 'svelte';
 
 	let {
-		children
+		children,
+		bg = 'bg-amber-100/90',
+		text = 'text-amber-500',
+		big = false,
+		title = undefined
 	}: {
 		children: Snippet;
+		bg?: string;
+		big?: boolean;
+		text?: string;
+		title?: string;
 	} = $props();
 </script>
 
-<span class=" rounded bg-amber-100/90 px-2 py-0.5 text-[0.5rem] text-amber-500 uppercase"
-	>{@render children?.()}</span
+<span
+	{title}
+	class=" rounded {bg} {big
+		? 'px-2 py-0.5 text-[0.8rem]'
+		: 'px-2 py-0.5 text-[0.5rem]'} {text} uppercase">{@render children?.()}</span
 >

@@ -21,7 +21,7 @@
 <button
 	{disabled}
 	type={type ? type : undefined}
-	class="pointer-events-auto cursor-pointer rounded-2xl {big
+	class="pointer-events-auto flex cursor-pointer items-center justify-center rounded-2xl {big
 		? 'px-5 py-1 text-3xl'
 		: 'px-3 py-1 text-base leading-none'} {grey
 		? 'bg-neutral-200 text-gray-800 md:hover:bg-neutral-200/50'
