@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Task, Treat, User } from '$lib/types';
 	import { rangeDays, percentages } from '$lib/stores/states';
+	import MiniTag from '$lib/components/mini-tag.svelte';
 	let {
 		data
 	}: {
@@ -33,18 +34,6 @@
 	const itemSize = (m: number) => {
 		const sizeRem = Math.max(MIN_EMOJI_REM, Math.min(MAX_EMOJI_REM, m * REMS_PER_MINUTE));
 		return `${sizeRem}rem`;
-	};
-
-	// Range selector helpers
-	const toDateTimeLocal = (ts: number) => {
-		const d = new Date(Number(ts || Date.now()));
-		const pad = (n: number) => String(n).padStart(2, '0');
-		const yyyy = d.getFullYear();
-		const mm = pad(d.getMonth() + 1);
-		const dd = pad(d.getDate());
-		const hh = pad(d.getHours());
-		const mi = pad(d.getMinutes());
-		return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 	};
 
 	const youMinutesTotal = youTasks.reduce((acc, t) => acc + minutes(t), 0);
@@ -126,8 +115,8 @@
 	];
 </script>
 
-<div class="relative z-20 flex flex-col gap-y-10 text-center">
-	<p class="text-center text-3xl leading-tight">Don't compare, appreciate!<br />😚</p>
+<div class="relative z-20 mt-10 flex flex-col gap-y-10 text-center">
+	<p class="text-center text-2xl leading-tight">Don't compare, appreciate!<br />😚</p>
 
 	<form
 		class="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-3 text-left"
@@ -186,10 +175,9 @@
 								style={`font-size:${itemSize(item.minutes)};line-height:1;`}
 								>{item.emoji}
 								{#if item.isNew}
-									<span
-										class="absolute -top-3 -left-3 rounded bg-amber-100/90 px-2 py-0.5 text-xs text-amber-500"
-										>new</span
-									>
+									<div class="absolute -top-3 -left-3 -translate-x-1/2">
+										<MiniTag>new</MiniTag>
+									</div>
 								{/if}</span
 							>
 							<span class="flex flex-1 flex-col leading-tight">
@@ -214,10 +202,9 @@
 								style={`font-size:${itemSize(item.minutes)};line-height:1;`}
 								>{item.emoji}
 								{#if item.isNew}
-									<span
-										class="absolute -top-3 -left-3 rounded bg-amber-100/90 px-2 py-0.5 text-xs text-amber-500"
-										>new</span
-									>
+									<div class="absolute -top-3 -left-3 -translate-x-1/2">
+										<MiniTag>new</MiniTag>
+									</div>
 								{/if}
 							</span>
 							<span class="flex flex-col leading-tight">

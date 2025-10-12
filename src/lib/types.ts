@@ -31,3 +31,9 @@ export type Treat = {
 	feedbackNote?: string | null;
 	acceptedNotifiedAt?: number | null;
 };
+
+export type Notification = {
+	message: string;
+	createdAt: number;
+	type: 'info' | 'error' | 'success';
+};

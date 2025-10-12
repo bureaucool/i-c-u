@@ -3,6 +3,8 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import Button from '$lib/components/button.svelte';
+	import MiniTag from '$lib/components/mini-tag.svelte';
+	import { addNotification } from '$lib/stores/notifications';
 
 	type GroupLite = { id: number; title: string };
 	type UserLite = { id: number; name: string };
@@ -17,14 +19,6 @@
 			members?: { id: number; name: string; email: string | null }[];
 		};
 	} = $props();
-	let groupMsg = $state<string | null>(null);
-	let groupErr = $state<string | null>(null);
-	let availMsg = $state<string | null>(null);
-	let availErr = $state<string | null>(null);
-	let pwdMsg = $state<string | null>(null);
-	let pwdErr = $state<string | null>(null);
-	let memberMsg = $state<string | null>(null);
-	let memberErr = $state<string | null>(null);
 
 	let currentGroupTitle = $derived(data.groups?.find((g) => g.id === data.groupId)?.title ?? '');
 
@@ -34,7 +28,11 @@
 	// Check if user arrived from password reset
 	onMount(() => {
 		if ($page.url.searchParams.get('reset_success') === 'true') {
-			pwdMsg = 'Password reset verified! You can now change your password below.';
+			addNotification({
+				createdAt: Date.now(),
+				message: 'You can now change your password below.',
+				type: 'success'
+			});
 			// Clean up URL
 			const url = new URL(window.location.href);
 			url.searchParams.delete('reset_success');
@@ -45,13 +43,8 @@
 
 <div class="pointer-events-none fixed inset-0 top-3 z-40">
 	<div class="mx-auto flex max-w-xl justify-end px-7">
-		<button
-			class="pointer-events-auto flex cursor-pointer p-3 opacity-30 md:hover:opacity-100"
-			onclick={async () => {
-				await fetch('/api/auth', { method: 'DELETE' });
-				await invalidateAll();
-				await goto('/');
-			}}>Logout</button
+		<a href="/" aria-label="Settings" class="pointer-events-auto p-3"
+			><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
 		>
 	</div>
 </div>
@@ -61,11 +54,21 @@
 		<form
 			onsubmit={async (e) => {
 				e.preventDefault();
-				groupMsg = groupErr = null;
+
 				const form = new FormData(e.currentTarget as HTMLFormElement);
 				const res = await fetch('?/updateGroup', { method: 'POST', body: form });
-				if (res.ok) groupMsg = 'Group title updated';
-				else groupErr = 'Failed to update group';
+				if (res.ok)
+					addNotification({
+						createdAt: Date.now(),
+						message: 'Group title updated',
+						type: 'success'
+					});
+				else
+					addNotification({
+						createdAt: Date.now(),
+						message: 'Failed to update group',
+						type: 'error'
+					});
 
 				editTitle = false;
 				await invalidateAll();
@@ -103,8 +106,6 @@
 				</div>
 			{/if}
 		</form>
-		{#if groupMsg}<p>{groupMsg}</p>{/if}
-		{#if groupErr}<p>{groupErr}</p>{/if}
 	</section>
 
 	<section>
@@ -125,26 +126,35 @@
 			<ul>
 				{#each data.members ?? [] as m}
 					<li class="flex flex-row items-end justify-between">
-						<span class="flex flex-row items-end gap-x-2"
+						<span class="relative flex flex-row items-end gap-x-2"
 							><span class="text-3xl">{m.name}</span>
-							{#if m.id === data.user?.id}<span
-									class="rounded-2xl bg-black/20 px-2 py-0.25 text-white">You</span
-								>{/if}
+							{#if m.id === data.user?.id}
+								<div class="absolute -top-3 -left-3 -translate-x-1/2">
+									<MiniTag>you</MiniTag>
+								</div>
+							{/if}
 							{#if m.email}<span class="opacity-50">{m.email}</span>{/if}</span
 						>
 						<Button
 							big={false}
 							grey
 							onclick={async () => {
-								memberMsg = memberErr = null;
 								const form = new FormData();
 								form.set('userId', String(m.id));
 								const res = await fetch('?/removeMember', { method: 'POST', body: form });
 								if (res.ok) {
-									memberMsg = 'Member removed';
+									addNotification({
+										createdAt: Date.now(),
+										message: 'Member removed',
+										type: 'success'
+									});
 									await invalidateAll();
 								} else {
-									memberErr = 'Failed to remove member';
+									addNotification({
+										createdAt: Date.now(),
+										message: 'Failed to remove member',
+										type: 'error'
+									});
 								}
 							}}>Remove</Button
 						>
@@ -157,14 +167,22 @@
 						class="flex flex-col text-3xl"
 						onsubmit={async (e) => {
 							e.preventDefault();
-							memberMsg = memberErr = null;
+
 							const form = new FormData(e.currentTarget as HTMLFormElement);
 							const res = await fetch('?/addMember', { method: 'POST', body: form });
 							if (res.ok) {
-								memberMsg = 'Member added';
+								addNotification({
+									createdAt: Date.now(),
+									message: 'Member added to the group',
+									type: 'success'
+								});
 								await invalidateAll();
 							} else {
-								memberErr = 'Failed to add member';
+								addNotification({
+									createdAt: Date.now(),
+									message: 'Failed to add member',
+									type: 'error'
+								});
 							}
 
 							editMembers = false;
@@ -185,8 +203,6 @@
 							>
 						</div>
 					</form>
-					{#if memberMsg}<p>{memberMsg}</p>{/if}
-					{#if memberErr}<p>{memberErr}</p>{/if}
 				</section>
 			{/if}
 		{/if}
@@ -198,11 +214,21 @@
 			class="flex flex-row items-center justify-between"
 			onsubmit={async (e) => {
 				e.preventDefault();
-				availMsg = availErr = null;
+
 				const form = new FormData(e.currentTarget as HTMLFormElement);
 				const res = await fetch('?/updateAvailability', { method: 'POST', body: form });
-				if (res.ok) availMsg = 'Availability updated';
-				else availErr = 'Failed to update availability';
+				if (res.ok)
+					addNotification({
+						createdAt: Date.now(),
+						message: 'Availability updated',
+						type: 'success'
+					});
+				else
+					addNotification({
+						createdAt: Date.now(),
+						message: 'Failed to update availability',
+						type: 'error'
+					});
 			}}
 		>
 			<input type="hidden" name="userId" value={data.user?.id} />
@@ -217,8 +243,6 @@
 				<Button big={false} type="submit">Save</Button>
 			</div>
 		</form>
-		{#if availMsg}<p>{availMsg}</p>{/if}
-		{#if availErr}<p>{availErr}</p>{/if}
 	</section>
 
 	<section>
@@ -227,11 +251,21 @@
 			class="flex flex-row items-center justify-between"
 			onsubmit={async (e) => {
 				e.preventDefault();
-				pwdMsg = pwdErr = null;
+
 				const form = new FormData(e.currentTarget as HTMLFormElement);
 				const res = await fetch('?/changePassword', { method: 'POST', body: form });
-				if (res.ok) pwdMsg = 'Password changed';
-				else pwdErr = 'Failed to change password';
+				if (res.ok)
+					addNotification({
+						createdAt: Date.now(),
+						message: 'Password changed',
+						type: 'success'
+					});
+				else
+					addNotification({
+						createdAt: Date.now(),
+						message: 'Failed to change password',
+						type: 'error'
+					});
 			}}
 		>
 			<input
@@ -245,8 +279,6 @@
 				<Button big={false} type="submit">Change</Button>
 			</div>
 		</form>
-		{#if pwdMsg}<p>{pwdMsg}</p>{/if}
-		{#if pwdErr}<p>{pwdErr}</p>{/if}
 	</section>
 
 	{#if data.groups?.length && data.groups.length > 1}
@@ -255,11 +287,21 @@
 			<form
 				onsubmit={async (e) => {
 					e.preventDefault();
-					groupMsg = groupErr = null;
+
 					const form = new FormData(e.currentTarget as HTMLFormElement);
 					const res = await fetch('?/selectGroup', { method: 'POST', body: form });
-					if (res.ok) groupMsg = 'Active group updated';
-					else groupErr = 'Failed to set active group';
+					if (res.ok)
+						addNotification({
+							createdAt: Date.now(),
+							message: 'Active group updated',
+							type: 'success'
+						});
+					else
+						addNotification({
+							createdAt: Date.now(),
+							message: 'Failed to set active group',
+							type: 'error'
+						});
 				}}
 			>
 				<select name="groupId">
@@ -274,8 +316,17 @@
 				</select>
 				<Button big={false} type="submit">Use this group</Button>
 			</form>
-			{#if groupMsg}<p>{groupMsg}</p>{/if}
-			{#if groupErr}<p>{groupErr}</p>{/if}
 		</section>
 	{/if}
+</div>
+
+<div class="pointer-events-none fixed inset-x-3 bottom-3 flex justify-center">
+	<Button
+		big={false}
+		onclick={async () => {
+			await fetch('/api/auth', { method: 'DELETE' });
+			await invalidateAll();
+			await goto('/');
+		}}>Logout</Button
+	>
 </div>
