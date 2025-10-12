@@ -72,3 +72,7 @@ body {
 		background-position: 0% 50%;
 	}
 }
+
+:global(.mobileTopSaveDistance) {
+	top: calc(env(safe-area-inset-top, 0px) + 3rem);
+}

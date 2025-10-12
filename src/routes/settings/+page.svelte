@@ -42,7 +42,7 @@
 	});
 </script>
 
-<div class="pointer-events-none fixed inset-0 top-3 z-40">
+<div class="mobileTopSaveDistance pointer-events-none fixed inset-0 z-40">
 	<div class="mx-auto flex max-w-xl justify-end px-7">
 		<a href="/" aria-label="Settings" class="pointer-events-auto p-3"
 			><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
