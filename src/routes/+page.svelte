@@ -135,7 +135,7 @@
 </script>
 
 {#if data.user}
-	<div class="pointer-events-none fixed inset-0 bottom-3 z-40 md:top-3">
+	<div class="pointer-events-none fixed inset-x-0 bottom-3 z-40 md:top-3">
 		<div class="mx-auto flex max-w-xl justify-end px-7">
 			<a href="/settings" aria-label="Settings" class="pointer-events-auto p-3"
 				><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
