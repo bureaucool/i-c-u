@@ -79,7 +79,7 @@
 		>
 			<input name="groupId" type="hidden" value={data.groupId} />
 			<div class="flex w-full flex-row items-center justify-between">
-				<span>Group title</span>
+				<span class="text-neutral-500">Group title</span>
 				{#if !editTitle}
 					<Button
 						big={false}
@@ -113,7 +113,7 @@
 
 	<section>
 		<div class="flex flex-row items-center justify-between">
-			<h3>Members</h3>
+			<h3 class="text-neutral-500">Members</h3>
 			{#if !editMembers}
 				<Button
 					big={false}
@@ -216,7 +216,7 @@
 	</section>
 
 	<section>
-		<h3>User Availability (minutes/week)</h3>
+		<h3 class="text-neutral-500">User Availability (minutes/week)</h3>
 		<form
 			class="flex flex-row items-center justify-between"
 			onsubmit={async (e) => {
@@ -255,7 +255,7 @@
 	</section>
 
 	<section>
-		<h3>Change Password</h3>
+		<h3 class="text-neutral-500">Change Password</h3>
 		<form
 			class="flex flex-row items-center justify-between"
 			onsubmit={async (e) => {
@@ -292,9 +292,20 @@
 		</form>
 	</section>
 
+	<section class="mt-10 flex flex-row justify-end">
+		<Button
+			big={false}
+			onclick={async () => {
+				await fetch('/api/auth', { method: 'DELETE' });
+				await invalidateAll();
+				await goto('/');
+			}}>Logout</Button
+		>
+	</section>
+
 	{#if data.groups?.length && data.groups.length > 1}
 		<section>
-			<h3>Active Groups</h3>
+			<h3 class="text-neutral-500">Active Groups</h3>
 			<form
 				onsubmit={async (e) => {
 					e.preventDefault();
@@ -331,15 +342,4 @@
 			</form>
 		</section>
 	{/if}
-</div>
-
-<div class="pointer-events-none fixed inset-x-3 bottom-3 flex justify-center">
-	<Button
-		big={false}
-		onclick={async () => {
-			await fetch('/api/auth', { method: 'DELETE' });
-			await invalidateAll();
-			await goto('/');
-		}}>Logout</Button
-	>
 </div>

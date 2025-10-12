@@ -29,6 +29,7 @@
 				<li>
 					<TaskItem
 						{hideUser}
+						completed={t.completedAt != null}
 						currentUserId={userId ?? -1}
 						task={t}
 						clickComplete={() => openComplete(t)}

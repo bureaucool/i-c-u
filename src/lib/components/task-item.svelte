@@ -37,13 +37,15 @@
 </script>
 
 <div class="flex flex-row items-center gap-x-3 rounded-full border border-neutral-300 px-6 py-2">
-	<button
-		aria-label="Complete task"
-		class=" flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 md:hover:scale-110 {completed
-			? 'bg-black'
-			: ''}"
-		onclick={clickComplete}>&nbsp;</button
-	>
+	{#if !completed}
+		<button
+			aria-label="Complete task"
+			class=" flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 md:hover:scale-110 {completed
+				? 'border-neutral-700 bg-neutral-700'
+				: ''}"
+			onclick={clickComplete}>&nbsp;</button
+		>
+	{/if}
 	<div>
 		<span class="flex-0 text-4xl">{task.emoji}</span>
 	</div>

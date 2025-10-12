@@ -28,7 +28,7 @@
 	const isRecent = (t: Task) =>
 		Number((t as any).completedAt ?? 0) >= Number(data.recentSince ?? 0);
 	const minutes = (t: Task) => Number((t as any).durationMinutes ?? 0) || 0;
-	const MIN_EMOJI_REM = 0.875; // 14px
+	const MIN_EMOJI_REM = 2; // 14px
 	const MAX_EMOJI_REM = 4; // 96px
 	const REMS_PER_MINUTE = 0.125; // 2px per minute -> 0.125rem
 	const itemSize = (m: number) => {
@@ -115,11 +115,11 @@
 	];
 </script>
 
-<div class="relative z-20 mt-10 flex flex-col gap-y-10 text-center">
+<div class="relative z-20 mt-5 flex flex-col gap-y-5 text-center">
 	<p class="text-center text-2xl leading-tight">Don't compare, appreciate!<br />😚</p>
 
 	<form
-		class="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-3 text-left"
+		class="mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-3 text-left"
 		method="GET"
 	>
 		<label for="range-select" class="text-sm opacity-60">Comparison range</label>
@@ -142,32 +142,13 @@
 		</select>
 	</form>
 
-	<!-- <div class="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-6 text-left">
-		<div class="rounded-lg bg-black/5 p-4">
-			<div class="text-xs uppercase opacity-60">Raw</div>
-			<div class="mt-1 text-3xl">
-				{yourRawPercent}% <span class="text-base opacity-60">you</span>
-			</div>
-			<div class="opacity-60">{youMinutesTotal} min vs {othersMinutesTotal} min</div>
-		</div>
-		<div class="rounded-lg bg-black/5 p-4">
-			<div class="text-xs uppercase opacity-60">Adjusted for availability</div>
-			<div class="mt-1 text-3xl">
-				{yourAdjPercent}% <span class="text-base opacity-60">you</span>
-			</div>
-			<div class="opacity-60">
-				you {youMinutesTotal}/{youAvail}m, others {othersMinutesTotal}/{othersAvail}m
-			</div>
-		</div>
-	</div> -->
-
 	<div class="mt-4 grid grid-cols-2 gap-3">
 		<div>
-			<h3>You</h3>
+			<h3 class="mb-5 text-xl text-neutral-500">You</h3>
 			{#if youItems.length === 0}
 				<p class="opacity-50">No items</p>
 			{:else}
-				<ul class="mt-2 flex flex-col gap-y-2 text-left">
+				<ul class="mt-2 flex flex-col gap-y-3 text-left">
 					{#each youItems as item}
 						<li class="flex items-center gap-x-3">
 							<span
@@ -180,9 +161,9 @@
 									</div>
 								{/if}</span
 							>
-							<span class="flex flex-1 flex-col leading-tight">
-								<span>{item.title}</span>
-								<span class="opacity-60">({item.minutes} min)</span>
+							<span class="flex flex-1 flex-col gap-y-0.25 leading-tight">
+								<span class="text-lg leading-none">{item.title}</span>
+								<span class="text-xs text-neutral-400">({item.minutes} min)</span>
 							</span>
 						</li>
 					{/each}
@@ -190,11 +171,11 @@
 			{/if}
 		</div>
 		<div>
-			<h3>Others</h3>
+			<h3 class="mb-5 text-xl text-neutral-500">Others</h3>
 			{#if othersItems.length === 0}
 				<p class="opacity-50">No items</p>
 			{:else}
-				<ul class="mt-2 flex flex-col gap-y-2 text-left">
+				<ul class="mt-2 flex flex-col gap-y-3 text-left">
 					{#each othersItems as item}
 						<li class="flex items-center gap-x-3">
 							<span
@@ -207,10 +188,12 @@
 									</div>
 								{/if}
 							</span>
-							<span class="flex flex-col leading-tight">
-								<span>{item.title}</span>
-								<span class="opacity-60">({item.minutes} min)</span>
-							</span>
+							<div>
+								<span class="flex flex-col gap-y-0.25 leading-none">
+									<span class="text-lg leading-none">{item.title}</span>
+									<span class="text-xs text-neutral-400">({item.minutes} min)</span>
+								</span>
+							</div>
 						</li>
 					{/each}
 				</ul>

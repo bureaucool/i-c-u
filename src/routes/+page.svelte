@@ -15,6 +15,7 @@
 	import { addNotification, addNotificationBig } from '$lib/stores/notifications';
 	import TaskList from '$lib/components/task-list.svelte';
 	import TreatAccepted from '$lib/components/treat-accepted.svelte';
+	import RotatingContainer from '$lib/components/rotating-container.svelte';
 
 	let {
 		data
@@ -127,12 +128,6 @@
 		editRecurrenceInterval =
 			((t as any).recurrenceInterval ?? '') ? String((t as any).recurrenceInterval) : '';
 		editOpen = true;
-	}
-
-	function openCompletedOptions(t: Task) {
-		selectedTask = t;
-		completeMinutes = Number((t as any).durationMinutes ?? '') || null;
-		completedOptionsOpen = true;
 	}
 </script>
 
@@ -557,12 +552,13 @@
 									editOpen = false;
 									invalidateAll();
 
-									addNotification({
-										id: Date.now().toString(),
-										createdAt: Date.now(),
-										message: 'Task updated',
-										type: 'success'
-									});
+									setTimeout(() => {
+										addNotificationBig({
+											id: Date.now().toString(),
+											createdAt: Date.now(),
+											message: '💪'
+										});
+									}, 500);
 								}
 							}}
 							onDelete={async () => {
@@ -668,8 +664,13 @@
 				out:fade={{ duration: 100, easing: sineInOut }}
 			>
 				<h3 class="flex flex-row justify-start gap-x-2 text-center text-3xl">
-					<span class="inline-block pr-1">{selectedTask.emoji}</span>{selectedTask.title}
-					<span class="inline-block pr-1 opacity-50">done!</span>
+					<RotatingContainer
+						children={[
+							`<span class="inline-block pr-1">${selectedTask.emoji}</span>`,
+							`<span class="inline-block pr-1">${selectedTask.title}</span>`,
+							`<span class="inline-block pr-1 opacity-50">done!</span>`
+						]}
+					></RotatingContainer>
 				</h3>
 
 				<form
@@ -705,7 +706,19 @@
 					</div>
 
 					<div class="flex flex-row justify-center gap-x-2">
-						<Button grey type="submit">Save</Button>
+						<Button
+							grey
+							type="submit"
+							onclick={() => {
+								setTimeout(() => {
+									addNotificationBig({
+										id: Date.now().toString(),
+										createdAt: Date.now(),
+										message: '💪'
+									});
+								}, 500);
+							}}>Save</Button
+						>
 						<Button onclick={() => (completeOpen = false)}>Cancel</Button>
 					</div>
 				</form>
@@ -752,7 +765,14 @@
 								});
 								if (res.ok) {
 									completedOptionsOpen = false;
-									invalidateAll();
+									await invalidateAll();
+									setTimeout(() => {
+										addNotificationBig({
+											id: Date.now().toString(),
+											createdAt: Date.now(),
+											message: '💪'
+										});
+									}, 500);
 								}
 							}}>Save</Button
 						>
