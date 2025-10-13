@@ -25,7 +25,7 @@
 
 <button
 	aria-label={'notification'}
-	class="pointer-events-auto flex flex-row items-center justify-center gap-x-2 rounded-b-lg bg-white p-4 leading-none"
+	class="pointer-events-auto flex flex-row items-center justify-center gap-x-2 rounded-b-lg bg-white px-4 py-2 leading-none"
 	onclick={() => {
 		timeO && clearTimeout(timeO);
 		removeNotification(notification);

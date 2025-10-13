@@ -314,7 +314,10 @@
 
 	<div class="flex w-full flex-row flex-wrap justify-center gap-2">
 		<Button grey type="submit">Save</Button>
-		<Button type="button" onclick={onCancel}>Cancel</Button>
+
+		{#if task && onDuplicate && mode === 'edit'}
+			<Button type="button" grey onclick={() => onDuplicate?.()}>Duplicate</Button>
+		{/if}
 		{#if task && allowDelete}
 			<Button
 				type="button"
@@ -326,8 +329,6 @@
 				}}>Delete</Button
 			>
 		{/if}
-		{#if task && onDuplicate && mode === 'edit'}
-			<Button type="button" grey onclick={() => onDuplicate?.()}>Duplicate</Button>
-		{/if}
+		<Button type="button" onclick={onCancel}>Close</Button>
 	</div>
 </form>

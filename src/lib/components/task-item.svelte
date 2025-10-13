@@ -85,8 +85,8 @@
 							<MiniTag big bg="bg-neutral-100" text="text-neutral-500">Whenever</MiniTag>
 						{/if}
 						{#if task.subtasks && task.subtasks.length > 0}
-							<MiniTag big bg="bg-neutral-100" text="text-neutral-500"
-								>{task.subtasks.length} subtasks</MiniTag
+							<MiniTag big bg="bg-green-100" text="text-neutral-500"
+								>{task.subtasks.length} tasks</MiniTag
 							>
 						{/if}
 					</div>
@@ -130,9 +130,9 @@
 						{#each task.subtasks as subtask (subtask.id)}
 							<div class="flex flex-row items-center gap-x-2">
 								<button
-									class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 {subtask.completed
+									class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {subtask.completed
 										? 'border-neutral-700 bg-neutral-700'
-										: 'border-neutral-300'}"
+										: 'border-neutral-700'}"
 									type="button"
 									onclick={async () => {
 										// optimistic toggle with reactive reassignment
@@ -157,9 +157,6 @@
 										}
 									}}
 								>
-									{#if subtask.completed}
-										<span class="text-[10px] text-white">✓</span>
-									{/if}
 								</button>
 								<span class="text-base {subtask.completed ? 'line-through opacity-50' : ''}"
 									>{subtask.title}</span

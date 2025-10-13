@@ -292,7 +292,7 @@
 		</form>
 	</section>
 
-	<section class="mt-10 flex flex-row justify-end">
+	<section class="mt-10 flex flex-row justify-center">
 		<Button
 			big={false}
 			onclick={async () => {
