@@ -73,6 +73,7 @@
 	);
 
 	type InsightItem = {
+		id: number;
 		kind: 'task' | 'treat';
 		title: string;
 		emoji: string;
@@ -82,6 +83,7 @@
 
 	const youItems: InsightItem[] = [
 		...youTasks.map((t) => ({
+			id: t.id,
 			kind: 'task' as const,
 			title: t.title,
 			emoji: (t.emoji as string) || '📎',
@@ -89,6 +91,7 @@
 			isNew: isRecent(t)
 		})),
 		...yourCreatedTreats.map((tr) => ({
+			id: tr.id,
 			kind: 'treat' as const,
 			title: tr.title,
 			emoji: tr.emoji || '♥️',
@@ -99,6 +102,7 @@
 
 	const othersItems: InsightItem[] = [
 		...othersTasks.map((t) => ({
+			id: t.id,
 			kind: 'task' as const,
 			title: t.title,
 			emoji: (t.emoji as string) || '📎',
@@ -106,6 +110,7 @@
 			isNew: isRecent(t)
 		})),
 		...othersCreatedTreats.map((tr) => ({
+			id: tr.id,
 			kind: 'treat' as const,
 			title: tr.title,
 			emoji: tr.emoji || '♥️',
@@ -149,7 +154,7 @@
 				<p class="opacity-50">No items</p>
 			{:else}
 				<ul class="mt-2 flex flex-col gap-y-3 text-left">
-					{#each youItems as item}
+					{#each youItems as item (item.id)}
 						<li class="flex items-center gap-x-3">
 							<span
 								class="relative select-none"
@@ -176,7 +181,7 @@
 				<p class="opacity-50">No items</p>
 			{:else}
 				<ul class="mt-2 flex flex-col gap-y-3 text-left">
-					{#each othersItems as item}
+					{#each othersItems as item (item.id)}
 						<li class="flex items-center gap-x-3">
 							<span
 								class="relative select-none"

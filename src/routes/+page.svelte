@@ -1,5 +1,4 @@
 <script lang="ts">
-	import TaskItem from '$lib/components/task-item.svelte';
 	import type { Task, User } from '$lib/types';
 	import TaskDialog from '$lib/components/task-dialog.svelte';
 	import TreatDialog from '$lib/components/treat-dialog.svelte';
@@ -128,6 +127,14 @@
 		editRecurrenceInterval =
 			((t as any).recurrenceInterval ?? '') ? String((t as any).recurrenceInterval) : '';
 		editOpen = true;
+	}
+
+	async function onDelete(t: Task) {
+		if (!t) return;
+		const res = await fetch(`/api/tasks/${t.id}`, { method: 'DELETE' });
+		if (res.ok) {
+			invalidateAll();
+		}
 	}
 </script>
 
@@ -432,6 +439,7 @@
 				userId={data.user?.id ?? -1}
 				{openComplete}
 				{openEdit}
+				{onDelete}
 			/>
 			<TaskList
 				title="Upcoming"
@@ -439,6 +447,7 @@
 				userId={data.user?.id ?? -1}
 				{openComplete}
 				{openEdit}
+				{onDelete}
 			/>
 
 			<TaskList
@@ -447,6 +456,7 @@
 				userId={data.user?.id ?? -1}
 				{openComplete}
 				{openEdit}
+				{onDelete}
 			/>
 
 			<TaskList
@@ -456,6 +466,7 @@
 				hideUser={true}
 				{openComplete}
 				{openEdit}
+				{onDelete}
 			/>
 		{/if}
 	</section>
@@ -473,175 +484,175 @@
 
 <Portal target="body">
 	{#if showAdd}
-		<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-5 md:px-10">
-			<div
-				class="absolute inset-0 bg-white/80"
-				transition:fade|global={{ duration: 100, easing: sineInOut }}
-			></div>
+		<div class="fixed inset-0 z-50 overflow-y-auto px-5 md:px-10">
 			<button
 				aria-label="Close"
-				class="absolute inset-0 z-20 bg-black/50"
+				class="fixed inset-0 z-20 bg-black/50"
 				onclick={() => (showAdd = false)}
+				transition:fade|global={{ duration: 100, easing: sineInOut }}
 			></button>
-			<div
-				class="relative z-30 flex w-full flex-col gap-y-6 rounded-4xl bg-black/90 p-5 text-white"
-				in:fly={{ duration: 500, easing: expoOut, y: 200 }}
-				out:fade={{ duration: 100, easing: sineInOut }}
-			>
-				{#if !editOpen}
-					<div class="flex flex-row justify-center gap-x-4">
-						<Button grey={formType === 'task'} onclick={() => (formType = 'task')}>🔨 Task</Button>
-						<Button grey={formType === 'treat'} onclick={() => (formType = 'treat')}
-							>♥️ Treat</Button
-						>
-					</div>
-				{/if}
+			<div class="flex min-h-full items-center justify-center py-10">
+				<div
+					class="relative z-30 flex w-full max-w-md flex-col gap-y-6 rounded-4xl bg-black/90 p-5 text-white"
+					in:fly={{ duration: 500, easing: expoOut, y: 200 }}
+					out:fade={{ duration: 100, easing: sineInOut }}
+				>
+					{#if !editOpen}
+						<div class="flex flex-row justify-center gap-x-4">
+							<Button grey={formType === 'task'} onclick={() => (formType = 'task')}>🔨 Task</Button
+							>
+							<Button grey={formType === 'treat'} onclick={() => (formType = 'treat')}
+								>♥️ Treat</Button
+							>
+						</div>
+					{/if}
 
-				{#if formType === 'task'}
-					{#if editOpen}
-						<TaskDialog
-							task={selectedTask}
-							users={data.users ?? []}
-							extras={(data.tasks ?? [])
-								.map((t) => t.emoji)
-								.filter((e) => typeof e === 'string') as string[]}
-							mode={'edit' as any}
-							allowDelete={true}
-							onDuplicate={async () => {
-								if (!selectedTask) return;
-								const res = await fetch('/api/tasks', {
-									method: 'POST',
-									headers: { 'Content-Type': 'application/json' },
-									body: JSON.stringify({
-										title: selectedTask.title,
-										emoji: selectedTask.emoji,
-										assignedUserId: selectedTask.assignedUserId,
-										scheduledAt: selectedTask.scheduledAt ?? null,
-										recurrenceType: (selectedTask as any).recurrenceType ?? null,
-										recurrenceInterval: (selectedTask as any).recurrenceInterval ?? null
-									})
-								});
-								if (res.ok) {
+					{#if formType === 'task'}
+						{#if editOpen}
+							<TaskDialog
+								task={selectedTask}
+								users={data.users ?? []}
+								extras={(data.tasks ?? [])
+									.map((t) => t.emoji)
+									.filter((e) => typeof e === 'string') as string[]}
+								mode={'edit' as any}
+								allowDelete={true}
+								onDuplicate={async () => {
+									if (!selectedTask) return;
+									const res = await fetch('/api/tasks', {
+										method: 'POST',
+										headers: { 'Content-Type': 'application/json' },
+										body: JSON.stringify({
+											title: selectedTask.title,
+											emoji: selectedTask.emoji,
+											assignedUserId: selectedTask.assignedUserId,
+											scheduledAt: selectedTask.scheduledAt ?? null,
+											recurrenceType: (selectedTask as any).recurrenceType ?? null,
+											recurrenceInterval: (selectedTask as any).recurrenceInterval ?? null
+										})
+									});
+									if (res.ok) {
+										editOpen = false;
+										showAdd = false;
+										invalidateAll();
+									}
+								}}
+								onCancel={() => {
 									editOpen = false;
 									showAdd = false;
-									invalidateAll();
-								}
-							}}
-							onCancel={() => {
-								editOpen = false;
-								showAdd = false;
-							}}
-							onSave={async (payload) => {
-								let ok = false;
-								if (selectedTask) {
-									const res = await fetch(`/api/tasks/${selectedTask.id}`, {
-										method: 'PATCH',
-										headers: { 'Content-Type': 'application/json' },
-										body: JSON.stringify(payload)
-									});
-									ok = res.ok;
-								} else {
+								}}
+								onSave={async (payload) => {
+									let ok = false;
+									if (selectedTask) {
+										const res = await fetch(`/api/tasks/${selectedTask.id}`, {
+											method: 'PATCH',
+											headers: { 'Content-Type': 'application/json' },
+											body: JSON.stringify(payload)
+										});
+										ok = res.ok;
+									} else {
+										const res = await fetch('/api/tasks', {
+											method: 'POST',
+											headers: { 'Content-Type': 'application/json' },
+											body: JSON.stringify(payload)
+										});
+										ok = res.ok;
+									}
+									if (ok) {
+										editOpen = false;
+										invalidateAll();
+
+										setTimeout(() => {
+											addNotificationBig({
+												id: Date.now().toString(),
+												createdAt: Date.now(),
+												message: '💪'
+											});
+										}, 500);
+									}
+								}}
+								onDelete={async () => {
+									if (!selectedTask) return;
+									const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
+									if (res.ok) {
+										editOpen = false;
+										showAdd = false;
+										invalidateAll();
+									}
+								}}
+							/>
+						{:else}
+							<TaskDialog
+								task={null}
+								users={data.users ?? []}
+								extras={(data.tasks ?? [])
+									.map((t) => t.emoji)
+									.filter((e) => typeof e === 'string') as string[]}
+								onCancel={() => {
+									showAdd = false;
+								}}
+								onSave={async (payload) => {
 									const res = await fetch('/api/tasks', {
 										method: 'POST',
 										headers: { 'Content-Type': 'application/json' },
 										body: JSON.stringify(payload)
 									});
-									ok = res.ok;
-								}
-								if (ok) {
-									editOpen = false;
-									invalidateAll();
+									if (res.ok) {
+										showAdd = false;
 
-									setTimeout(() => {
+										invalidateAll();
+
 										addNotificationBig({
 											id: Date.now().toString(),
-											createdAt: Date.now(),
-											message: '💪'
+											message: '⚙️',
+											createdAt: Date.now()
 										});
-									}, 500);
-								}
-							}}
-							onDelete={async () => {
-								if (!selectedTask) return;
-								const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
-								if (res.ok) {
-									editOpen = false;
-									showAdd = false;
-									invalidateAll();
-								}
-							}}
-						/>
+									} else {
+										addNotification({
+											id: Date.now().toString(),
+											createdAt: Date.now(),
+											message: 'Failed to create task',
+											type: 'error'
+										});
+									}
+								}}
+							/>
+						{/if}
 					{:else}
-						<TaskDialog
-							task={null}
+						<TreatDialog
 							users={data.users ?? []}
-							extras={(data.tasks ?? [])
-								.map((t) => t.emoji)
-								.filter((e) => typeof e === 'string') as string[]}
+							currentUserId={data.user?.id}
 							onCancel={() => {
 								showAdd = false;
 							}}
 							onSave={async (payload) => {
-								const res = await fetch('/api/tasks', {
+								const res = await fetch('/api/treats', {
 									method: 'POST',
 									headers: { 'Content-Type': 'application/json' },
 									body: JSON.stringify(payload)
 								});
 								if (res.ok) {
 									showAdd = false;
-
-									invalidateAll();
-
 									addNotificationBig({
 										id: Date.now().toString(),
-										message: '⚙️',
+										message: '❤️',
 										createdAt: Date.now()
 									});
+
+									invalidateAll();
 								} else {
+									const err = await res.json().catch(() => ({}));
 									addNotification({
 										id: Date.now().toString(),
 										createdAt: Date.now(),
-										message: 'Failed to create task',
+										message: err?.error || err?.message || 'Failed to create treat',
 										type: 'error'
 									});
 								}
 							}}
 						/>
 					{/if}
-				{:else}
-					<TreatDialog
-						users={data.users ?? []}
-						currentUserId={data.user?.id}
-						onCancel={() => {
-							showAdd = false;
-						}}
-						onSave={async (payload) => {
-							const res = await fetch('/api/treats', {
-								method: 'POST',
-								headers: { 'Content-Type': 'application/json' },
-								body: JSON.stringify(payload)
-							});
-							if (res.ok) {
-								showAdd = false;
-								addNotificationBig({
-									id: Date.now().toString(),
-									message: '❤️',
-									createdAt: Date.now()
-								});
-
-								invalidateAll();
-							} else {
-								const err = await res.json().catch(() => ({}));
-								addNotification({
-									id: Date.now().toString(),
-									createdAt: Date.now(),
-									message: err?.error || err?.message || 'Failed to create treat',
-									type: 'error'
-								});
-							}
-						}}
-					/>
-				{/if}
+				</div>
 			</div>
 		</div>
 	{/if}

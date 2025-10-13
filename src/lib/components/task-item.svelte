@@ -8,6 +8,7 @@
 		completed = false,
 		clickComplete,
 		clickEdit,
+		clickDelete,
 		hideUser = false,
 		currentUserId = -1
 	}: {
@@ -15,9 +16,12 @@
 		completed?: boolean;
 		clickComplete: () => void;
 		clickEdit: () => void;
+		clickDelete: (task: Task) => void;
 		hideUser?: boolean;
 		currentUserId?: number;
 	} = $props();
+
+	let hovered = $state(false);
 
 	function formatScheduledDate(timestamp: number): string {
 		const date = new Date(timestamp);
@@ -36,7 +40,11 @@
 	}
 </script>
 
-<div class="flex flex-row items-center gap-x-3 rounded-full border border-neutral-300 px-6 py-2">
+<div
+	class="pointer-events-auto relative flex flex-row items-center gap-x-3 rounded-full border border-neutral-300 px-6 py-2"
+	onmouseenter={() => (hovered = true)}
+	onmouseleave={() => (hovered = false)}
+>
 	{#if !completed}
 		<button
 			aria-label="Complete task"
@@ -77,4 +85,15 @@
 			</div>
 		</div>
 	</button>
+	{#if completed && hovered}
+		<div class="absolute inset-y-0 right-8 z-20 flex flex-col items-center justify-center">
+			<button
+				class="cursor-pointer text-2xl"
+				onclick={() => {
+					clickDelete(task);
+					hovered = false;
+				}}>❌</button
+			>
+		</div>
+	{/if}
 </div>

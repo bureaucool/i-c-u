@@ -43,13 +43,13 @@
 			<p>No groups.</p>
 		{:else}
 			<ul class="mt-5 flex flex-col gap-6">
-				{#each data.groups as g}
+				{#each data.groups as g (g.id)}
 					<li class="flex flex-col gap-5 rounded-lg bg-black/5 p-4">
 						<div class=" text-3xl">{g.title}</div>
 						<div>
 							<div class="text-sm opacity-60">Members</div>
 							<ul class=" flex flex-col">
-								{#each data.membersByGroup[g.id] ?? [] as m}
+								{#each data.membersByGroup[g.id] ?? [] as m (m.id)}
 									<li>{m.name} <span class="opacity-60">({m.email})</span></li>
 								{/each}
 							</ul>

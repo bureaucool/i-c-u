@@ -209,7 +209,7 @@
 			disabled={mode === 'duplicate' && task != null}
 		>
 			<option value="">Unassigned</option>
-			{#each users as u}
+			{#each users as u (u.id)}
 				<option value={String(u.id)}>{u.name}</option>
 			{/each}
 		</select>

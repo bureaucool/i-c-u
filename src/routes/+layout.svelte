@@ -144,7 +144,7 @@
 	</div>
 {/if}
 
-<div class="rainbow-bg fixed inset-0"></div>
+<div class="rainbow-bg pointer-events-none fixed inset-0"></div>
 
 <Notifications />
 <NotificationsBig />

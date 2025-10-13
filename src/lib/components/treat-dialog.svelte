@@ -38,7 +38,7 @@
 		<span class="text-neutral-500">For</span>
 		<select class="text-3xl" name="toUserId" required bind:value={toUserId}>
 			<option value="" disabled selected>Select</option>
-			{#each users.filter((u) => u.id !== (currentUserId ?? -1)) as u}
+			{#each users.filter((u) => u.id !== (currentUserId ?? -1)) as u (u.id)}
 				<option value={u.id}>{u.name}</option>
 			{/each}
 		</select>

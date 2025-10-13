@@ -8,7 +8,8 @@
 		userId,
 		hideUser = false,
 		openComplete,
-		openEdit
+		openEdit,
+		onDelete
 	}: {
 		tasks: Task[];
 		title: string;
@@ -16,6 +17,7 @@
 		hideUser?: boolean;
 		openComplete: (task: Task) => void;
 		openEdit: (task: Task) => void;
+		onDelete: (task: Task) => void;
 	} = $props();
 </script>
 
@@ -25,7 +27,7 @@
 		<p class="text-3xl opacity-30">No tasks</p>
 	{:else}
 		<ul class="flex flex-col gap-y-1">
-			{#each tasks as t}
+			{#each tasks as t (t.id)}
 				<li>
 					<TaskItem
 						{hideUser}
@@ -34,6 +36,7 @@
 						task={t}
 						clickComplete={() => openComplete(t)}
 						clickEdit={() => openEdit(t)}
+						clickDelete={(t) => onDelete(t)}
 					/>
 				</li>
 			{/each}

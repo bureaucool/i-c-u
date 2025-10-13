@@ -4,7 +4,7 @@
 </script>
 
 <div class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
-	{#each $notificationsBig as notification}
+	{#each $notificationsBig as notification (notification.id)}
 		<NotificationBig {notification} />
 	{/each}
 </div>

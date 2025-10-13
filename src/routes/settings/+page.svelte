@@ -127,7 +127,7 @@
 			<p>No members in this group.</p>
 		{:else}
 			<ul>
-				{#each data.members ?? [] as m}
+				{#each data.members ?? [] as m (m.id)}
 					<li class="flex flex-row items-end justify-between">
 						<span class="relative flex flex-row items-end gap-x-2"
 							><span class="text-3xl">{m.name}</span>
@@ -329,7 +329,7 @@
 				}}
 			>
 				<select name="groupId">
-					{#each data.groups ?? [] as g}
+					{#each data.groups ?? [] as g (g.id)}
 						<option
 							class="text-3xl"
 							value={g.id}
