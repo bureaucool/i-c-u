@@ -528,7 +528,14 @@
 											assignedUserId: selectedTask.assignedUserId,
 											scheduledAt: selectedTask.scheduledAt ?? null,
 											recurrenceType: (selectedTask as any).recurrenceType ?? null,
-											recurrenceInterval: (selectedTask as any).recurrenceInterval ?? null
+											recurrenceInterval: (selectedTask as any).recurrenceInterval ?? null,
+											description: selectedTask.description ?? null,
+											subtasks:
+												selectedTask.subtasks?.map((st) => ({
+													title: st.title,
+													orderNumber: st.orderNumber,
+													completed: false // Reset completion status for duplicated task
+												})) ?? []
 										})
 									});
 									if (res.ok) {
@@ -560,6 +567,7 @@
 									}
 									if (ok) {
 										editOpen = false;
+										showAdd = false;
 										invalidateAll();
 
 										setTimeout(() => {

@@ -5,6 +5,14 @@ export type User = {
 	availableTimeMinutesPerWeek?: number | null;
 };
 
+export type Subtask = {
+	id: number;
+	taskId: number;
+	title: string;
+	orderNumber: number;
+	completed: boolean;
+};
+
 export type Task = {
 	id: number;
 	title: string;
@@ -15,6 +23,8 @@ export type Task = {
 	completedAt?: number | null;
 	recurrenceType?: string | null;
 	recurrenceInterval?: number | null;
+	description?: string | null;
+	subtasks?: Subtask[];
 };
 
 export type Treat = {

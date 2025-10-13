@@ -29,6 +29,13 @@ export const PATCH: RequestHandler = async ({ params, request, locals, cookies }
 	const recurrenceType = typeof body.recurrenceType === 'string' ? body.recurrenceType : undefined;
 	const recurrenceInterval =
 		body.recurrenceInterval == null ? undefined : Number(body.recurrenceInterval);
+	const description =
+		(body as any).description === null
+			? null
+			: typeof body.description === 'string'
+				? body.description.trim()
+				: undefined;
+	const subtasks = Array.isArray(body.subtasks) ? body.subtasks : undefined;
 
 	const updates: Record<string, unknown> = {};
 
@@ -57,17 +64,63 @@ export const PATCH: RequestHandler = async ({ params, request, locals, cookies }
 	if (scheduledAt !== undefined) updates.scheduled_at = scheduledAt;
 	if (recurrenceType !== undefined) updates.recurrence_type = recurrenceType;
 	if (recurrenceInterval !== undefined) updates.recurrence_interval = recurrenceInterval;
+	if (description !== undefined) updates.description = description;
 
-	if (Object.keys(updates).length === 0) return json({});
+	// Update subtasks if provided
+	if (subtasks !== undefined) {
+		// Delete existing subtasks
+		const { error: delErr } = await supabase.from('subtask').delete().eq('task_id', id);
 
-	const { data: updated, error: uErr } = await supabase
-		.from('task')
-		.update(updates)
-		.eq('id', id)
-		.select()
-		.single();
-	if (uErr) throw error(500, uErr.message);
-	if (!updated) throw error(404, 'task not found');
+		if (delErr) throw error(500, delErr.message);
+
+		// Insert new subtasks
+		if (subtasks.length > 0) {
+			const subtaskInserts = subtasks.map((st: any, index: number) => ({
+				task_id: id,
+				title: typeof st.title === 'string' ? st.title.trim() : '',
+				order_number: typeof st.orderNumber === 'number' ? st.orderNumber : index,
+				completed: typeof st.completed === 'boolean' ? st.completed : false
+			}));
+
+			const { error: insErr } = await supabase.from('subtask').insert(subtaskInserts);
+
+			if (insErr) throw error(500, insErr.message);
+		}
+	}
+
+	if (Object.keys(updates).length === 0 && subtasks === undefined) return json({});
+
+	let updated = existing;
+	if (Object.keys(updates).length > 0) {
+		const { data: updatedData, error: uErr } = await supabase
+			.from('task')
+			.update(updates)
+			.eq('id', id)
+			.select()
+			.single();
+		if (uErr) throw error(500, uErr.message);
+		if (!updatedData) throw error(404, 'task not found');
+		updated = updatedData;
+	}
+
+	// Fetch updated subtasks
+	const { data: updatedSubtasks, error: subErr } = await supabase
+		.from('subtask')
+		.select('*')
+		.eq('task_id', id)
+		.order('order_number', { ascending: true });
+
+	if (subErr) throw error(500, subErr.message);
+
+	// Convert subtasks to camelCase
+	(updated as any).subtasks = (updatedSubtasks ?? []).map((st: any) => ({
+		id: st.id,
+		taskId: st.task_id,
+		title: st.title,
+		orderNumber: st.order_number,
+		completed: st.completed
+	}));
+
 	return json(updated);
 };
 

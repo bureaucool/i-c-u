@@ -23,6 +23,7 @@
 	} = $props();
 
 	let hovered = $state(false);
+	let showDetails = $state(false);
 
 	function formatScheduledDate(timestamp: number): string {
 		const date = new Date(timestamp);
@@ -41,60 +42,133 @@
 	}
 </script>
 
-<div
-	class="pointer-events-auto relative flex flex-row items-center gap-x-3 rounded-full border border-neutral-300 px-6 py-2"
->
-	{#if !completed}
-		<button
-			aria-label="Complete task"
-			class=" flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 md:hover:scale-110 {completed
-				? 'border-neutral-700 bg-neutral-700'
-				: ''}"
-			onclick={clickComplete}>&nbsp;</button
-		>
-	{/if}
-	<div>
-		<span class="flex-0 text-4xl">{task.emoji}</span>
-	</div>
-
-	<button
-		class=" flex w-full cursor-pointer flex-col items-start md:hover:opacity-50"
-		onclick={clickEdit}
-		onmouseenter={() => !$isMobile && (hovered = true)}
-		onmouseleave={() => !$isMobile && (hovered = false)}
+<div class="pointer-events-auto flex flex-col gap-y-1">
+	<div
+		class="relative flex flex-row items-center gap-x-3 rounded-full border border-neutral-300 px-6 py-2"
 	>
-		<div class="flex w-full flex-row gap-x-2 text-3xl leading-none">
-			<div class="flex flex-col items-start justify-start gap-y-1">
-				<span class="block text-left">{task.title}</span>
+		{#if !completed}
+			<button
+				aria-label="Complete task"
+				class=" flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 md:hover:scale-110 {completed
+					? 'border-neutral-700 bg-neutral-700'
+					: ''}"
+				onclick={clickComplete}>&nbsp;</button
+			>
+		{/if}
+		<div>
+			<span class="flex-0 text-4xl">{task.emoji}</span>
+		</div>
 
-				<div class="flex w-full flex-row gap-x-0.5">
-					{#if !hideUser && task.assignedUserId != null && task.assignedUserId === currentUserId}
-						<MiniTag big>You</MiniTag>
-					{/if}
-					{#if task.scheduledAt}
-						{@const dateInfo = beautifyDate(task.scheduledAt)}
-						<MiniTag big bg="bg-green-100" text="text-green-700" title={dateInfo.formatted}
-							>{dateInfo.relative}</MiniTag
-						>
-						<MiniTag big bg="bg-neutral-100" text="text-neutral-500"
-							>{formatScheduledDate(task.scheduledAt)}</MiniTag
-						>
-					{:else}
-						<MiniTag big bg="bg-neutral-100" text="text-neutral-500">Whenever</MiniTag>
-					{/if}
+		<button
+			class=" flex w-full cursor-pointer flex-col items-start md:hover:opacity-50"
+			onclick={clickEdit}
+			onmouseenter={() => !$isMobile && (hovered = true)}
+			onmouseleave={() => !$isMobile && (hovered = false)}
+		>
+			<div class="flex w-full flex-row gap-x-2 text-3xl leading-none">
+				<div class="flex flex-col items-start justify-start gap-y-1">
+					<span class="block text-left">{task.title}</span>
+
+					<div class="flex w-full flex-row gap-x-0.5">
+						{#if !hideUser && task.assignedUserId != null && task.assignedUserId === currentUserId}
+							<MiniTag big>You</MiniTag>
+						{/if}
+						{#if task.scheduledAt}
+							{@const dateInfo = beautifyDate(task.scheduledAt)}
+							<MiniTag big bg="bg-green-100" text="text-green-700" title={dateInfo.formatted}
+								>{dateInfo.relative}</MiniTag
+							>
+							<MiniTag big bg="bg-neutral-100" text="text-neutral-500"
+								>{formatScheduledDate(task.scheduledAt)}</MiniTag
+							>
+						{:else}
+							<MiniTag big bg="bg-neutral-100" text="text-neutral-500">Whenever</MiniTag>
+						{/if}
+						{#if task.subtasks && task.subtasks.length > 0}
+							<MiniTag big bg="bg-neutral-100" text="text-neutral-500"
+								>{task.subtasks.length} subtasks</MiniTag
+							>
+						{/if}
+					</div>
 				</div>
 			</div>
-		</div>
-	</button>
-	{#if completed && hovered}
-		<div class="absolute inset-y-0 right-8 z-20 flex flex-col items-center justify-center">
+		</button>
+
+		{#if (task.description || (task.subtasks && task.subtasks.length > 0)) && !completed}
 			<button
-				class="cursor-pointer text-2xl"
-				onclick={() => {
-					clickDelete(task);
-					hovered = false;
-				}}>❌</button
+				class="shrink-0 text-xl opacity-50 hover:opacity-100"
+				onclick={() => (showDetails = !showDetails)}
 			>
+				{showDetails ? '-' : '+'}
+			</button>
+		{/if}
+
+		{#if completed && hovered}
+			<div class="absolute inset-y-0 right-8 z-20 flex flex-col items-center justify-center">
+				<button
+					class="cursor-pointer text-2xl"
+					onclick={() => {
+						clickDelete(task);
+						hovered = false;
+					}}>❌</button
+				>
+			</div>
+		{/if}
+	</div>
+
+	{#if showDetails && !completed}
+		<div class=" flex flex-col gap-y-2 rounded-full border border-neutral-200 p-4 px-8">
+			{#if task.description}
+				<div class="flex flex-col gap-y-1">
+					<p class="whitespace-pre-wrap text-neutral-700">{task.description}</p>
+				</div>
+			{/if}
+
+			{#if task.subtasks && task.subtasks.length > 0}
+				<div class="flex flex-col gap-y-1">
+					<div class="flex flex-col gap-y-1">
+						{#each task.subtasks as subtask (subtask.id)}
+							<div class="flex flex-row items-center gap-x-2">
+								<button
+									class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 {subtask.completed
+										? 'border-neutral-700 bg-neutral-700'
+										: 'border-neutral-300'}"
+									type="button"
+									onclick={async () => {
+										// optimistic toggle with reactive reassignment
+										const prevCompleted = subtask.completed;
+										const nextCompleted = !prevCompleted;
+										const before = (task.subtasks ?? []).map((st) => ({ ...st }));
+										task = {
+											...task,
+											subtasks: (task.subtasks ?? []).map((st) =>
+												st.id === subtask.id ? { ...st, completed: nextCompleted } : st
+											)
+										} as any;
+										try {
+											await fetch(`/api/tasks/${task.id}/subtasks/${subtask.id}`, {
+												method: 'PATCH',
+												headers: { 'Content-Type': 'application/json' },
+												body: JSON.stringify({ completed: nextCompleted })
+											});
+										} catch (e) {
+											// revert on error
+											task = { ...task, subtasks: before } as any;
+										}
+									}}
+								>
+									{#if subtask.completed}
+										<span class="text-[10px] text-white">✓</span>
+									{/if}
+								</button>
+								<span class="text-base {subtask.completed ? 'line-through opacity-50' : ''}"
+									>{subtask.title}</span
+								>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

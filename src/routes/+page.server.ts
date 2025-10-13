@@ -17,7 +17,8 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 			scheduledAt: r.scheduled_at,
 			recurrenceType: r.recurrence_type,
 			recurrenceInterval: r.recurrence_interval,
-			completedAt: r.completed_at
+			completedAt: r.completed_at,
+			description: r.description
 		};
 	}
 
@@ -88,6 +89,37 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		completed = (tCompleted.data ?? []).map(mapTaskRow);
 		pendingTreats = (treatsPending.data ?? []).map(mapTreatRow);
 		acceptedTreatsToNotify = (treatsNotify.data ?? []).map(mapTreatRow);
+
+		// Attach subtasks to tasks
+		const allTaskIds = Array.from(
+			new Set([
+				...tasks.map((t) => t.id),
+				...active.map((t) => t.id),
+				...completed.map((t) => t.id)
+			])
+		);
+		if (allTaskIds.length > 0) {
+			const { data: subtasksRows } = await supabase
+				.from('subtask')
+				.select('*')
+				.in('task_id', allTaskIds)
+				.order('order_number', { ascending: true });
+			const byTask = new Map<number, any[]>();
+			for (const st of subtasksRows ?? []) {
+				const camel = {
+					id: st.id,
+					taskId: st.task_id,
+					title: st.title,
+					orderNumber: st.order_number,
+					completed: st.completed
+				};
+				if (!byTask.has(st.task_id)) byTask.set(st.task_id, []);
+				byTask.get(st.task_id)!.push(camel);
+			}
+			for (const t of tasks) (t as any).subtasks = byTask.get(t.id) ?? [];
+			for (const t of active) (t as any).subtasks = byTask.get(t.id) ?? [];
+			for (const t of completed) (t as any).subtasks = byTask.get(t.id) ?? [];
+		}
 	}
 
 	const usersRes = await supabase.from('user').select('*');

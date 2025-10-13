@@ -4,6 +4,8 @@
 	import type { Task, User } from '$lib/types';
 	import Button from './button.svelte';
 
+	import type { Subtask } from '$lib/types';
+
 	let {
 		task,
 		users,
@@ -25,6 +27,8 @@
 			scheduledAt: number | null;
 			recurrenceType: string | null;
 			recurrenceInterval: number | null;
+			description: string | null;
+			subtasks: Array<{ title: string; orderNumber: number; completed: boolean }>;
 		}) => Promise<void> | void;
 		onCancel: () => void;
 		onDelete?: () => Promise<void> | void;
@@ -33,20 +37,42 @@
 		allowDelete?: boolean;
 	} = $props();
 
-	let title = $state(task?.title ?? '');
-	let emoji = $state((task?.emoji ?? '') as string);
-	let assignedUserId = $state(task?.assignedUserId ? String(task.assignedUserId) : '');
+	let title = $state('');
+	let emoji = $state('');
+	let assignedUserId = $state('');
 	let date = $state('');
 	let time = $state('');
-	if (task?.scheduledAt) {
-		const d = new Date(Number(task.scheduledAt));
-		date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-		time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-	}
-	let recurrenceType = $state(((task as any)?.recurrenceType ?? '') as string);
-	let recurrenceInterval = $state(
-		((task as any)?.recurrenceInterval ?? '') ? String((task as any).recurrenceInterval) : ''
-	);
+	let recurrenceType = $state('');
+	let recurrenceInterval = $state('');
+	let description = $state('');
+	let subtasks = $state<Array<{ title: string; orderNumber: number; completed: boolean }>>([]);
+
+	// Initialize/update state when task prop changes
+	$effect(() => {
+		title = task?.title ?? '';
+		emoji = (task?.emoji ?? '') as string;
+		assignedUserId = task?.assignedUserId ? String(task.assignedUserId) : '';
+
+		if (task?.scheduledAt) {
+			const d = new Date(Number(task.scheduledAt));
+			date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+			time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+		} else {
+			date = '';
+			time = '';
+		}
+
+		recurrenceType = ((task as any)?.recurrenceType ?? '') as string;
+		recurrenceInterval =
+			((task as any)?.recurrenceInterval ?? '') ? String((task as any).recurrenceInterval) : '';
+		description = task?.description ?? '';
+		subtasks =
+			task?.subtasks?.map((st) => ({
+				title: st.title,
+				orderNumber: st.orderNumber,
+				completed: st.completed
+			})) ?? [];
+	});
 
 	// API returns array of objects with at least an `emoji` string; be permissive
 	let foundEmojis = $state<Array<{ emoji?: string; character?: string }>>([]);
@@ -67,8 +93,24 @@
 			assignedUserId: assignedUserId || null,
 			scheduledAt,
 			recurrenceType: recurrenceType || null,
-			recurrenceInterval: recurrenceInterval ? Number(recurrenceInterval) : null
+			recurrenceInterval: recurrenceInterval ? Number(recurrenceInterval) : null,
+			description: description.trim() || null,
+			subtasks: subtasks.filter((st) => st.title.trim() !== '')
 		});
+	}
+
+	function addSubtask() {
+		subtasks = [...subtasks, { title: '', orderNumber: subtasks.length, completed: false }];
+	}
+
+	function removeSubtask(index: number) {
+		subtasks = subtasks.filter((_, i) => i !== index);
+		// Re-order remaining subtasks
+		subtasks = subtasks.map((st, i) => ({ ...st, orderNumber: i }));
+	}
+
+	function toggleSubtask(index: number) {
+		subtasks[index] = { ...subtasks[index], completed: !subtasks[index].completed };
 	}
 </script>
 
@@ -112,11 +154,15 @@
 				</div>
 			{/if}
 			<div class="flex flex-row justify-center gap-x-1">
-				<Button grey big={false} onclick={() => (showPicker = true)}>Browse</Button>
-				<Button grey big={false} onclick={() => (emoji = '')} disabled={emoji === ''}>Clear</Button>
+				<Button type="button" grey big={false} onclick={() => (showPicker = true)}>Browse</Button>
+				<Button type="button" grey big={false} onclick={() => (emoji = '')} disabled={emoji === ''}
+					>Clear</Button
+				>
 			</div>
 		{/if}
-		{#if showPicker}<Button grey big={false} onclick={() => (showPicker = false)}>Hide</Button>{/if}
+		{#if showPicker}<Button type="button" grey big={false} onclick={() => (showPicker = false)}
+				>Hide</Button
+			>{/if}
 		{#if showPicker}
 			<EmojiPicker
 				onPick={(e) => {
@@ -214,11 +260,64 @@
 			{/each}
 		</select>
 	</div>
+
+	<div class="flex w-full flex-col gap-y-0">
+		<span class="text-neutral-500">Description (optional)</span>
+		<textarea
+			class="w-full rounded-xl border border-neutral-300 px-3 py-2 text-xl"
+			placeholder="Add a description..."
+			rows="3"
+			bind:value={description}
+		></textarea>
+	</div>
+
+	<div class="flex w-full flex-col gap-y-2">
+		<div class="flex flex-row items-center justify-between">
+			<span class="text-neutral-500">Subtasks (optional)</span>
+			<Button type="button" grey big={false} onclick={addSubtask}>+ Add Subtask</Button>
+		</div>
+		{#if subtasks.length > 0}
+			<div class="flex w-full flex-col gap-y-2">
+				{#each subtasks as subtask, index (index)}
+					<div class="flex w-full flex-row items-center gap-x-2">
+						<button
+							type="button"
+							class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {subtask.completed
+								? 'border-neutral-700 bg-neutral-700'
+								: 'border-neutral-300'}"
+							onclick={() => toggleSubtask(index)}
+						>
+							{#if subtask.completed}
+								<span class="text-xs text-white">✓</span>
+							{/if}
+						</button>
+						<input
+							type="text"
+							class="w-full rounded-lg border border-neutral-300 px-2 py-1 text-lg {subtask.completed
+								? 'line-through opacity-50'
+								: ''}"
+							placeholder="Subtask title..."
+							bind:value={subtask.title}
+						/>
+						<button
+							type="button"
+							class="text-xl text-red-500 hover:text-red-700"
+							onclick={() => removeSubtask(index)}
+						>
+							×
+						</button>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</div>
+
 	<div class="flex w-full flex-row flex-wrap justify-center gap-2">
 		<Button grey type="submit">Save</Button>
-		<Button onclick={onCancel}>Cancel</Button>
+		<Button type="button" onclick={onCancel}>Cancel</Button>
 		{#if task && allowDelete}
 			<Button
+				type="button"
 				red
 				onclick={async () => {
 					if (confirm('Delete this task?')) {
@@ -228,7 +327,7 @@
 			>
 		{/if}
 		{#if task && onDuplicate && mode === 'edit'}
-			<Button grey onclick={() => onDuplicate?.()}>Duplicate</Button>
+			<Button type="button" grey onclick={() => onDuplicate?.()}>Duplicate</Button>
 		{/if}
 	</div>
 </form>
