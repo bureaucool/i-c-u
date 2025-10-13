@@ -2,6 +2,7 @@
 	import type { Task } from '$lib/types';
 	import MiniTag from './mini-tag.svelte';
 	import { beautifyDate } from '$lib/helpers';
+	import { isMobile } from '$lib/stores/device';
 
 	let {
 		task,
@@ -42,8 +43,6 @@
 
 <div
 	class="pointer-events-auto relative flex flex-row items-center gap-x-3 rounded-full border border-neutral-300 px-6 py-2"
-	onmouseenter={() => (hovered = true)}
-	onmouseleave={() => (hovered = false)}
 >
 	{#if !completed}
 		<button
@@ -61,6 +60,8 @@
 	<button
 		class=" flex w-full cursor-pointer flex-col items-start md:hover:opacity-50"
 		onclick={clickEdit}
+		onmouseenter={() => !$isMobile && (hovered = true)}
+		onmouseleave={() => !$isMobile && (hovered = false)}
 	>
 		<div class="flex w-full flex-row gap-x-2 text-3xl leading-none">
 			<div class="flex flex-col items-start justify-start gap-y-1">
