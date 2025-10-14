@@ -39,6 +39,19 @@
 			url.searchParams.delete('reset_success');
 			window.history.replaceState({}, '', url);
 		}
+
+		// Show prompt to set password after email confirmation auto-login
+		if ($page.url.searchParams.get('prompt_set_password') === 'true') {
+			addNotification({
+				id: Date.now().toString(),
+				createdAt: Date.now(),
+				message: 'Welcome! Please set your password below to finish setup.',
+				type: 'success'
+			});
+			const url = new URL(window.location.href);
+			url.searchParams.delete('prompt_set_password');
+			window.history.replaceState({}, '', url);
+		}
 	});
 </script>
 
