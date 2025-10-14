@@ -73,7 +73,7 @@
 				<div class="flex flex-col items-start justify-start gap-y-1">
 					<span class="block text-left">{task.title}</span>
 
-					<div class="flex w-full flex-row flex-wrap gap-x-0.5">
+					<div class="flex w-full flex-row flex-wrap gap-0.5">
 						{#if !hideUser && task.assignedUserId != null && task.assignedUserId === currentUserId}
 							<MiniTag big>You</MiniTag>
 						{/if}

@@ -1,20 +1,27 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { addNotification } from '$lib/stores/notifications';
 	import type { Subtask, Task } from '$lib/types';
 	import DistributeAnimation from './distribute-animation.svelte';
 	let { task, subtask }: { task: Task; subtask: Subtask } = $props();
 
 	let activateAnimation = $state(false);
+	let clicked = $state(false);
 </script>
 
 <div class="relative flex flex-row items-center gap-x-2">
 	<button
 		aria-label="Toggle subtask"
-		class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {subtask.completed
+		class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {subtask.completed ||
+		clicked
 			? 'border-neutral-700 bg-neutral-700'
-			: 'border-neutral-700'}"
+			: 'border-neutral-700'} {clicked
+			? 'pointer-events-none animate-[pulse_1s_ease-in-out_infinite]'
+			: 'cursor-pointer'}"
 		type="button"
 		onclick={async () => {
+			clicked = true;
+
 			// optimistic toggle with reactive reassignment
 			const prevCompleted = subtask.completed;
 			const nextCompleted = !prevCompleted;
@@ -36,9 +43,17 @@
 					activateAnimation = true;
 				}
 				invalidateAll();
+				clicked = false;
 			} catch (e) {
 				// revert on error
 				task = { ...task, subtasks: before } as any;
+				addNotification({
+					id: Date.now().toString(),
+					createdAt: Date.now(),
+					message: 'Failed to update subtask',
+					type: 'error'
+				});
+				clicked = false;
 			}
 		}}
 	>
