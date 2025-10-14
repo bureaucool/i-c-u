@@ -3,6 +3,7 @@ import { createSupabaseServer } from '$lib/server/supabase';
 import { createSupabaseService } from '$lib/server/supabaseService';
 import { changePassword, createUserWithPassword } from '$lib/server/auth';
 import { fail } from '@sveltejs/kit';
+import { PUBLIC_APP_URL } from '$env/static/public';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const supabase = createSupabaseServer(cookies);
@@ -116,12 +117,12 @@ export const actions: Actions = {
 		if (!email || !Number.isFinite(groupId)) return fail(400, { message: 'invalid' });
 
 		// Send invite email via Admin API (confirmation link to /auth/confirmed)
-		const appBase =
-			(globalThis as any).PUBLIC_APP_URL ?? process.env.PUBLIC_APP_URL ?? 'http://localhost:5173';
-		const invite = await admin.auth.admin.inviteUserByEmail(email, {
+		const appBase = PUBLIC_APP_URL || 'http://localhost:5173';
+		const { data: inviteData, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
 			redirectTo: `${appBase}/auth/confirmed`,
 			data: { name }
 		});
+		if (inviteErr) return fail(500, { message: inviteErr.message });
 		// If user already exists, invite may error; proceed to ensure local rows
 
 		// Ensure local user row exists
