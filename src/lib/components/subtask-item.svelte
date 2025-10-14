@@ -42,7 +42,8 @@
 				if (nextCompleted) {
 					activateAnimation = true;
 				}
-				invalidateAll();
+				await invalidateAll();
+
 				clicked = false;
 			} catch (e) {
 				// revert on error

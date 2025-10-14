@@ -710,6 +710,14 @@
 							completeOpen = false;
 
 							invalidateAll();
+
+							setTimeout(() => {
+								addNotificationBig({
+									id: Date.now().toString(),
+									createdAt: Date.now(),
+									message: '💪'
+								});
+							}, 500);
 						}
 					}}
 				>
@@ -726,19 +734,7 @@
 					</div>
 
 					<div class="flex flex-row justify-center gap-x-2">
-						<Button
-							grey
-							type="submit"
-							onclick={() => {
-								setTimeout(() => {
-									addNotificationBig({
-										id: Date.now().toString(),
-										createdAt: Date.now(),
-										message: '💪'
-									});
-								}, 500);
-							}}>Save</Button
-						>
+						<Button grey type="submit" onclick={() => {}}>Save</Button>
 						<Button onclick={() => (completeOpen = false)}>Cancel</Button>
 					</div>
 				</form>
