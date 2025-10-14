@@ -78,7 +78,7 @@
 	let foundEmojis = $state<Array<{ emoji?: string; character?: string }>>([]);
 
 	let showPicker = $state(false);
-	let showEmojiField = $state(false);
+	let showEmojiField = $state(mode === 'edit' ? true : false);
 
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
@@ -116,9 +116,9 @@
 
 {#if task}
 	{#if mode === 'duplicate'}
-		<p class="text-center text-3xl"><span class="opacity-30">Duplicate</span> {task.title}</p>
+		<p class="text-center text-3xl"><span class="opacity-30">Duplicate</span>&nbsp;{task.title}</p>
 	{:else if mode === 'edit'}
-		<p class="text-center text-3xl"><span class="opacity-30">Editing</span> {task.title}</p>
+		<p class="text-center text-3xl"><span class="opacity-30">Editing</span>&nbsp;{task.title}</p>
 	{/if}
 {/if}
 <form onsubmit={submit} class="flex flex-col items-center gap-y-10">
@@ -185,7 +185,10 @@
 			bind:value={title}
 			disabled={mode === 'duplicate' && task != null}
 			onblur={async () => {
-				if (!task && title.trim().length > 0) {
+				if (
+					((!task && mode === 'create') || mode === 'edit' || mode === 'duplicate') &&
+					title.trim().length > 0
+				) {
 					showEmojiField = true;
 					const tempEmoji = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`);
 					if (tempEmoji.ok) {

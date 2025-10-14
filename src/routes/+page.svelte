@@ -515,7 +515,7 @@
 								extras={(data.tasks ?? [])
 									.map((t) => t.emoji)
 									.filter((e) => typeof e === 'string') as string[]}
-								mode={'edit' as any}
+								mode={'edit'}
 								allowDelete={true}
 								onDuplicate={async () => {
 									if (!selectedTask) return;
@@ -591,6 +591,7 @@
 							/>
 						{:else}
 							<TaskDialog
+								mode={'create'}
 								task={null}
 								users={data.users ?? []}
 								extras={(data.tasks ?? [])
