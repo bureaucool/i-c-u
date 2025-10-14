@@ -2,7 +2,7 @@
 	import type { Task } from '$lib/types';
 	import MiniTag from './mini-tag.svelte';
 	import { beautifyDate } from '$lib/helpers';
-	import { isMobile } from '$lib/stores/device';
+	import { isMobile, isTouch } from '$lib/stores/device';
 	import IconMinus from './icon-minus.svelte';
 	import IconPlus from './icon-plus.svelte';
 	import IconRemove from './icon-remove.svelte';
@@ -66,8 +66,8 @@
 		<button
 			class=" flex w-full cursor-pointer flex-col items-start md:hover:opacity-50"
 			onclick={clickEdit}
-			onmouseenter={() => !$isMobile && (hovered = true)}
-			onmouseleave={() => !$isMobile && (hovered = false)}
+			onmouseenter={() => !$isMobile && !$isTouch && (hovered = true)}
+			onmouseleave={() => !$isMobile && !$isTouch && (hovered = false)}
 		>
 			<div class="flex w-full flex-row gap-x-2 text-3xl leading-none">
 				<div class="flex flex-col items-start justify-start gap-y-1">
@@ -111,7 +111,7 @@
 			</button>
 		{/if}
 
-		{#if completed && hovered}
+		{#if completed && (hovered || $isTouch)}
 			<div class="absolute inset-y-0 right-8 z-20 flex flex-col items-center justify-center">
 				<button
 					class="cursor-pointer text-2xl"
