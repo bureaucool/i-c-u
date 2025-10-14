@@ -145,7 +145,7 @@
 						<span class="relative flex flex-row items-end gap-x-2"
 							><span class="text-3xl">{m.name}</span>
 							{#if m.id === data.user?.id}
-								<div class="absolute -top-3 -left-3 -translate-x-1/2">
+								<div class="absolute -top-3 -right-3 -translate-x-1/2">
 									<MiniTag>you</MiniTag>
 								</div>
 							{/if}
@@ -211,7 +211,6 @@
 					>
 						<input name="name" placeholder="Name (optional)" />
 						<input name="email" type="email" placeholder="Email" required />
-						<input name="password" type="password" placeholder="Password" required />
 						<div>
 							<Button type="submit" big={false}>Add member</Button>
 							<Button
