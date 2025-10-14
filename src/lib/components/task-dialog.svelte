@@ -4,7 +4,7 @@
 	import type { Task, User } from '$lib/types';
 	import Button from './button.svelte';
 
-	import type { Subtask } from '$lib/types';
+	import IconRemove from './icon-remove.svelte';
 
 	let {
 		task,
@@ -262,7 +262,7 @@
 	</div>
 
 	<div class="flex w-full flex-col gap-y-0">
-		<span class="text-neutral-500">Description (optional)</span>
+		<span class="text-neutral-500">Description</span>
 		<textarea
 			class="w-full rounded-xl border border-neutral-300 px-3 py-2 text-xl"
 			placeholder="Add a description..."
@@ -273,7 +273,7 @@
 
 	<div class="flex w-full flex-col gap-y-2">
 		<div class="flex flex-row items-center justify-between">
-			<span class="text-neutral-500">Subtasks (optional)</span>
+			<span class="text-neutral-500">Subtasks</span>
 			<Button type="button" grey big={false} onclick={addSubtask}>+ Add Subtask</Button>
 		</div>
 		{#if subtasks.length > 0}
@@ -283,13 +283,10 @@
 						<button
 							type="button"
 							class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {subtask.completed
-								? 'border-neutral-700 bg-neutral-700'
-								: 'border-neutral-300'}"
+								? 'border-neutral-300'
+								: 'border-neutral-300 bg-neutral-300'}"
 							onclick={() => toggleSubtask(index)}
 						>
-							{#if subtask.completed}
-								<span class="text-xs text-white">✓</span>
-							{/if}
 						</button>
 						<input
 							type="text"
@@ -299,12 +296,8 @@
 							placeholder="Subtask title..."
 							bind:value={subtask.title}
 						/>
-						<button
-							type="button"
-							class="text-xl text-red-500 hover:text-red-700"
-							onclick={() => removeSubtask(index)}
-						>
-							×
+						<button type="button" onclick={() => removeSubtask(index)}>
+							<IconRemove color="white" size={20} />
 						</button>
 					</div>
 				{/each}

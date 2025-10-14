@@ -3,6 +3,10 @@
 	import MiniTag from './mini-tag.svelte';
 	import { beautifyDate } from '$lib/helpers';
 	import { isMobile } from '$lib/stores/device';
+	import IconMinus from './icon-minus.svelte';
+	import IconPlus from './icon-plus.svelte';
+	import IconRemove from './icon-remove.svelte';
+	import SubtaskItem from './subtask-item.svelte';
 
 	let {
 		task,
@@ -86,7 +90,7 @@
 						{/if}
 						{#if task.subtasks && task.subtasks.length > 0}
 							<MiniTag big bg="bg-green-100" text="text-neutral-500"
-								>{task.subtasks.length} tasks</MiniTag
+								>{task.subtasks.filter((s) => s.completed).length}/{task.subtasks.length} tasks</MiniTag
 							>
 						{/if}
 					</div>
@@ -99,7 +103,11 @@
 				class="shrink-0 text-xl opacity-50 hover:opacity-100"
 				onclick={() => (showDetails = !showDetails)}
 			>
-				{showDetails ? '-' : '+'}
+				{#if showDetails}
+					<IconMinus size={20} />
+				{:else}
+					<IconPlus size={20} />
+				{/if}
 			</button>
 		{/if}
 
@@ -110,14 +118,14 @@
 					onclick={() => {
 						clickDelete(task);
 						hovered = false;
-					}}>❌</button
+					}}><IconRemove /></button
 				>
 			</div>
 		{/if}
 	</div>
 
 	{#if showDetails && !completed}
-		<div class=" flex flex-col gap-y-2 rounded-full border border-neutral-200 p-4 px-8">
+		<div class=" flex flex-col gap-y-2 rounded-full border border-neutral-200 p-4 px-6">
 			{#if task.description}
 				<div class="flex flex-col gap-y-1">
 					<p class="whitespace-pre-wrap text-neutral-700">{task.description}</p>
@@ -128,40 +136,7 @@
 				<div class="flex flex-col gap-y-1">
 					<div class="flex flex-col gap-y-1">
 						{#each task.subtasks as subtask (subtask.id)}
-							<div class="flex flex-row items-center gap-x-2">
-								<button
-									class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {subtask.completed
-										? 'border-neutral-700 bg-neutral-700'
-										: 'border-neutral-700'}"
-									type="button"
-									onclick={async () => {
-										// optimistic toggle with reactive reassignment
-										const prevCompleted = subtask.completed;
-										const nextCompleted = !prevCompleted;
-										const before = (task.subtasks ?? []).map((st) => ({ ...st }));
-										task = {
-											...task,
-											subtasks: (task.subtasks ?? []).map((st) =>
-												st.id === subtask.id ? { ...st, completed: nextCompleted } : st
-											)
-										} as any;
-										try {
-											await fetch(`/api/tasks/${task.id}/subtasks/${subtask.id}`, {
-												method: 'PATCH',
-												headers: { 'Content-Type': 'application/json' },
-												body: JSON.stringify({ completed: nextCompleted })
-											});
-										} catch (e) {
-											// revert on error
-											task = { ...task, subtasks: before } as any;
-										}
-									}}
-								>
-								</button>
-								<span class="text-base {subtask.completed ? 'line-through opacity-50' : ''}"
-									>{subtask.title}</span
-								>
-							</div>
+							<SubtaskItem {task} {subtask} />
 						{/each}
 					</div>
 				</div>
