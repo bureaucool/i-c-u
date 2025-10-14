@@ -44,9 +44,15 @@
 		}
 		return base;
 	}
+
+	let deleting = $state(false);
 </script>
 
-<div class="pointer-events-auto flex flex-col gap-y-1">
+<div
+	class="pointer-events-auto flex flex-col gap-y-1 {deleting
+		? 'animate-[pulse_1s_ease-in-out_infinite]'
+		: ''}"
+>
 	<div
 		class="relative flex flex-row items-center gap-x-3 rounded-full border border-neutral-300 px-6 py-2"
 	>
@@ -116,6 +122,8 @@
 				<button
 					class="cursor-pointer text-2xl"
 					onclick={() => {
+						deleting = true;
+
 						clickDelete(task);
 						hovered = false;
 					}}><IconRemove /></button

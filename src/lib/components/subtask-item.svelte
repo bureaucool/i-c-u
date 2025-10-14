@@ -12,10 +12,10 @@
 <div class="relative flex flex-row items-center gap-x-2">
 	<button
 		aria-label="Toggle subtask"
-		class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 {subtask.completed ||
+		class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full {subtask.completed ||
 		clicked
-			? 'border-neutral-700 bg-neutral-700'
-			: 'border-neutral-700'} {clicked
+			? ' bg-neutral-700'
+			: 'border-2 border-neutral-700'} {clicked
 			? 'pointer-events-none animate-[pulse_1s_ease-in-out_infinite]'
 			: 'cursor-pointer'}"
 		type="button"
