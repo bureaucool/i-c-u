@@ -119,7 +119,7 @@
 {/if}
 {#key page.url.pathname}
 	<div
-		class="relative top-0 z-10 mx-auto max-w-xl px-10 py-32"
+		class="relative top-0 z-10 mx-auto max-w-xl px-5 py-32 md:px-10"
 		in:fade|local={{ duration: 400, delay: 200 }}
 		out:fade|local={{ duration: 200, delay: 0 }}
 	>
