@@ -18,7 +18,7 @@
 
 <span
 	{title}
-	class=" rounded {bg} {big
+	class="rounded whitespace-nowrap {bg} {big
 		? 'px-2 py-0.5 text-[0.8rem]'
 		: 'px-2 py-0.5 text-[0.5rem]'} {text} uppercase">{@render children?.()}</span
 >

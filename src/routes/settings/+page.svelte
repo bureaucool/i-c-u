@@ -6,6 +6,8 @@
 	import MiniTag from '$lib/components/mini-tag.svelte';
 	import { addNotification } from '$lib/stores/notifications';
 
+	let fullScreenNotification = $state<{ message: string; type: string } | null>(null);
+
 	type GroupLite = { id: number; title: string };
 	type UserLite = { id: number; name: string };
 	let {
@@ -42,12 +44,11 @@
 
 		// Show prompt to set password after email confirmation auto-login
 		if ($page.url.searchParams.get('prompt_set_password') === 'true') {
-			addNotification({
-				id: Date.now().toString(),
-				createdAt: Date.now(),
+			fullScreenNotification = {
 				message: 'Welcome! Please set your password below to finish setup.',
-				type: 'success'
-			});
+				type: 'note'
+			};
+
 			const url = new URL(window.location.href);
 			url.searchParams.delete('prompt_set_password');
 			window.history.replaceState({}, '', url);
@@ -355,3 +356,19 @@
 		</section>
 	{/if}
 </div>
+
+{#if fullScreenNotification}
+	<button
+		class="fixed inset-0 z-[80] flex items-center justify-center"
+		onclick={() => {
+			fullScreenNotification = null;
+		}}
+	>
+		<div class="flex flex-col items-center justify-center rounded-lg bg-white p-4 text-2xl">
+			<span class="w-full text-center text-3xl"
+				>{fullScreenNotification.type === 'note' ? '☝️' : ''}</span
+			>
+			<p>{fullScreenNotification.message}</p>
+		</div>
+	</button>
+{/if}
