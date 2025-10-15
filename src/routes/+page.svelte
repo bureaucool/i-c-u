@@ -17,6 +17,7 @@
 	import TaskList from '$lib/components/task-list.svelte';
 	import TreatAccepted from '$lib/components/treat-accepted.svelte';
 	import RotatingContainer from '$lib/components/rotating-container.svelte';
+	import MiniTag from '$lib/components/mini-tag.svelte';
 
 	let {
 		data
@@ -36,6 +37,7 @@
 	let localActiveTasks = $state<Task[]>([...(data.activeTasks ?? data.tasks ?? [])]);
 	let localCompletedTasks = $state<Task[]>([...(data.completedTasks ?? [])]);
 	let localPendingTreats = $state<Array<any>>([...(data.pendingTreats ?? [])]);
+	let outgoingPendingTreats = $state<Array<any>>([...((data as any).outgoingPendingTreats ?? [])]);
 
 	function mapTaskRowClient(r: any): Task {
 		return {
@@ -188,6 +190,19 @@
 		}
 	}
 
+	function upsertOrRemoveOutgoingPending(row: any, eventType: 'INSERT' | 'UPDATE' | 'DELETE') {
+		const id = row.id;
+		outgoingPendingTreats = (outgoingPendingTreats ?? []).filter((t) => t.id !== id);
+		if (eventType === 'DELETE') return;
+		const isPending =
+			row.from_user_id === (data.user?.id ?? -1) &&
+			row.accepted === false &&
+			row.declined_at == null;
+		if (isPending) {
+			outgoingPendingTreats = [mapTreatFromDbRow(row), ...outgoingPendingTreats];
+		}
+	}
+
 	onMount(() => {
 		if (!data.groupId) return;
 		const supabase = createSupabaseBrowser();
@@ -218,9 +233,11 @@
 				if (payload.eventType === 'DELETE') {
 					upsertOrRemovePendingTreat(payload.old, 'DELETE');
 					upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
+					upsertOrRemoveOutgoingPending(payload.old, 'DELETE');
 				} else {
 					upsertOrRemovePendingTreat(payload.new, payload.eventType);
 					upsertOrRemoveAcceptedNotice(payload.new, payload.eventType);
+					upsertOrRemoveOutgoingPending(payload.new, payload.eventType);
 				}
 			}
 		);
@@ -336,6 +353,11 @@
 			// Optimistic removal; realtime will also arrive (idempotent)
 			removeTaskLocal(t.id);
 		}
+	}
+	// Helper to display user names for treats
+	function getUserName(userId: number | null | undefined): string {
+		const u = (data.users ?? []).find((usr) => usr.id === Number(userId));
+		return u?.name ?? String(userId ?? '');
 	}
 </script>
 
@@ -662,6 +684,29 @@
 				{openEdit}
 				{onDelete}
 			/>
+
+			{#if (outgoingPendingTreats ?? []).length > 0}
+				<div class="">
+					<h3 class="mb-2 text-neutral-500">Pending treats</h3>
+					<ul class="flex flex-col gap-y-1">
+						{#each outgoingPendingTreats ?? [] as tr}
+							<li
+								class="flex items-center justify-between gap-x-2 rounded-full border border-neutral-200 px-6 py-4"
+							>
+								<div class="flex items-center gap-x-2">
+									<span class="text-2xl">{tr.emoji ?? '♥️'}</span>
+									<div class="flex flex-col">
+										<span class="text-3xl">{tr.title}</span>
+										<MiniTag big>For {getUserName(tr.toUserId)}</MiniTag>
+									</div>
+
+									<!-- <span class="text-neutral-500">({tr.valueMinutes} min)</span> -->
+								</div>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
 		{/if}
 	</section>
 

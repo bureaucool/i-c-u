@@ -56,39 +56,50 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	let users: any[] = [];
 	let pendingTreats: any[] = [];
 	let acceptedTreatsToNotify: any[] = [];
+	let outgoingPendingTreats: any[] = [];
 
 	if (gid) {
-		const [tAll, tActive, tCompleted, treatsPending, treatsNotify] = await Promise.all([
-			supabase.from('task').select('*').eq('group_id', gid),
-			supabase.from('task').select('*').eq('group_id', gid).is('completed_at', null),
-			supabase
-				.from('task')
-				.select('*')
-				.eq('group_id', gid)
-				.not('completed_at', 'is', null)
-				.order('completed_at', { ascending: false }),
-			supabase
-				.from('treat')
-				.select('*')
-				.eq('group_id', gid)
-				.eq('to_user_id', locals.user.id)
-				.eq('accepted', false)
-				.is('declined_at', null),
-			supabase
-				.from('treat')
-				.select('*')
-				.eq('group_id', gid)
-				.eq('from_user_id', locals.user.id)
-				.eq('accepted', true)
-				.is('accepted_notified_at', null)
-				.order('accepted_at', { ascending: false })
-		]);
+		const [tAll, tActive, tCompleted, treatsPending, treatsNotify, treatsSentPending] =
+			await Promise.all([
+				supabase.from('task').select('*').eq('group_id', gid),
+				supabase.from('task').select('*').eq('group_id', gid).is('completed_at', null),
+				supabase
+					.from('task')
+					.select('*')
+					.eq('group_id', gid)
+					.not('completed_at', 'is', null)
+					.order('completed_at', { ascending: false }),
+				supabase
+					.from('treat')
+					.select('*')
+					.eq('group_id', gid)
+					.eq('to_user_id', locals.user.id)
+					.eq('accepted', false)
+					.is('declined_at', null),
+				supabase
+					.from('treat')
+					.select('*')
+					.eq('group_id', gid)
+					.eq('from_user_id', locals.user.id)
+					.eq('accepted', true)
+					.is('accepted_notified_at', null)
+					.order('accepted_at', { ascending: false }),
+				supabase
+					.from('treat')
+					.select('*')
+					.eq('group_id', gid)
+					.eq('from_user_id', locals.user.id)
+					.eq('accepted', false)
+					.is('declined_at', null)
+					.order('created_at', { ascending: false })
+			]);
 
 		tasks = (tAll.data ?? []).map(mapTaskRow);
 		active = (tActive.data ?? []).map(mapTaskRow);
 		completed = (tCompleted.data ?? []).map(mapTaskRow);
 		pendingTreats = (treatsPending.data ?? []).map(mapTreatRow);
 		acceptedTreatsToNotify = (treatsNotify.data ?? []).map(mapTreatRow);
+		outgoingPendingTreats = (treatsSentPending.data ?? []).map(mapTreatRow);
 
 		// Attach subtasks to tasks
 		const allTaskIds = Array.from(
@@ -146,6 +157,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		users,
 		pendingTreats,
 		acceptedTreatsToNotify,
+		outgoingPendingTreats,
 		showLogin: url.searchParams.get('showLogin') === '1'
 	};
 };
