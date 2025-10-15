@@ -207,11 +207,19 @@
 	onMount(() => {
 		if (!data.groupId) return;
 		const supabase = createSupabaseBrowser();
-		const channel = supabase.channel(`tasks-${data.groupId}`);
+		const channelName = `tasks-${data.groupId}`;
+		const channel = supabase.channel(channelName);
 		channel.on(
 			'postgres_changes',
 			{ event: '*', schema: 'public', table: 'task', filter: `group_id=eq.${data.groupId}` },
 			(payload: any) => {
+				console.debug('[realtime] page task event', {
+					channel: channelName,
+					status: 'event',
+					eventType: payload.eventType,
+					new: payload.new,
+					old: payload.old
+				});
 				if (payload.eventType === 'DELETE') {
 					removeTaskLocal(payload.old.id);
 				} else {
@@ -223,6 +231,13 @@
 			'postgres_changes',
 			{ event: '*', schema: 'public', table: 'subtask' },
 			(payload: any) => {
+				console.debug('[realtime] page subtask event', {
+					channel: channelName,
+					status: 'event',
+					eventType: payload.eventType,
+					new: payload.new,
+					old: payload.old
+				});
 				if (payload.eventType === 'DELETE') updateSubtaskLocal('DELETE', payload.old);
 				else updateSubtaskLocal(payload.eventType, payload.new);
 			}
@@ -231,6 +246,13 @@
 			'postgres_changes',
 			{ event: '*', schema: 'public', table: 'treat', filter: `group_id=eq.${data.groupId}` },
 			(payload: any) => {
+				console.debug('[realtime] page treat event', {
+					channel: channelName,
+					status: 'event',
+					eventType: payload.eventType,
+					new: payload.new,
+					old: payload.old
+				});
 				if (payload.eventType === 'DELETE') {
 					upsertOrRemovePendingTreat(payload.old, 'DELETE');
 					upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
@@ -242,7 +264,9 @@
 				}
 			}
 		);
-		channel.subscribe();
+		channel.subscribe((status) => {
+			console.debug('[realtime] page channel status', { channel: channelName, status });
+		});
 		taskChannel = channel;
 	});
 
@@ -362,15 +386,18 @@
 	}
 </script>
 
-{#if data.user}
-	<div class="pointer-events-none fixed inset-x-0 bottom-3 z-40 w-full md:top-3">
-		<div class="mx-auto flex max-w-xl justify-end px-7">
-			<a href="/settings" aria-label="Settings" class="pointer-events-auto p-3"
-				><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
-			>
+<div
+	class="pointer-events-none fixed inset-x-0 top-3 z-40 mx-auto flex max-w-lg flex-row justify-between"
+>
+	<a class="pointer-events-auto p-3" href="/">Insights</a>
+	{#if data.user}
+		<div class="pointer-events-none fixed inset-x-0 bottom-3 z-40 w-full md:top-3">
+			<div class="mx-auto flex max-w-xl justify-end px-7">
+				<a href="/settings" aria-label="Settings" class="pointer-events-auto p-3">Settings</a>
+			</div>
 		</div>
-	</div>
-{/if}
+	{/if}
+</div>
 
 {#if !data.user}
 	<section class="flex h-full w-full flex-col items-center justify-center gap-y-5 text-center">

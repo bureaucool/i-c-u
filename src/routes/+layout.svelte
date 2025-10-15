@@ -8,7 +8,7 @@
 	import { createSupabaseBrowser } from '$lib';
 	import { invalidateAll } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { untrack } from 'svelte';
+
 	import Notifications from '$lib/components/notifications.svelte';
 	import NotificationsBig from '$lib/components/notifications-big.svelte';
 
@@ -83,9 +83,20 @@
 			.on(
 				'postgres_changes',
 				{ event: '*', schema: 'public', table: 'task', filter: `group_id=eq.${data.groupId}` },
-				scheduleInvalidate
+				(payload) => {
+					console.debug('[realtime] task event', {
+						channel: taskChannelName,
+						status: 'event',
+						eventType: payload.eventType,
+						new: payload.new,
+						old: payload.old
+					});
+					scheduleInvalidate();
+				}
 			)
-			.subscribe();
+			.subscribe((status) => {
+				console.debug('[realtime] task channel status', { channel: taskChannelName, status });
+			});
 
 		const treatChannel = supabase
 			.channel(treatChannelName)
@@ -93,10 +104,19 @@
 				// Client-side filter since server-side filter had issues
 				const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
 				if (groupId === data.groupId) {
+					console.debug('[realtime] treat event', {
+						channel: treatChannelName,
+						status: 'event',
+						eventType: payload.eventType,
+						new: payload.new,
+						old: payload.old
+					});
 					scheduleInvalidate();
 				}
 			})
-			.subscribe();
+			.subscribe((status) => {
+				console.debug('[realtime] treat channel status', { channel: treatChannelName, status });
+			});
 
 		return () => {
 			supabase.removeChannel(taskChannel);
@@ -112,9 +132,7 @@
 
 {#if data.user}
 	<div class="pointer-events-none fixed inset-x-3 top-3 z-30 flex justify-center">
-		<a href={page.url.pathname === '/' ? '/insights' : '/'} class="pointer-events-auto"
-			><Logo title={currentGroupTitle} /></a
-		>
+		<Logo title={currentGroupTitle} />
 	</div>
 {/if}
 {#key page.url.pathname}

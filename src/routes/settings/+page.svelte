@@ -64,6 +64,20 @@
 	</div>
 </div>
 
+<div
+	class="pointer-events-none fixed inset-x-0 top-3 z-40 mx-auto flex max-w-lg flex-row justify-between"
+>
+	<a class="pointer-events-auto p-3" href="/">Back</a>
+	<button
+		class="pointer-events-auto p-3"
+		onclick={async () => {
+			await fetch('/api/auth', { method: 'DELETE' });
+			await invalidateAll();
+			await goto('/');
+		}}>Logout</button
+	>
+</div>
+
 <div class="flex flex-col gap-y-10">
 	<section class="">
 		<form
@@ -303,17 +317,6 @@
 				<Button big={false} type="submit">Change</Button>
 			</div>
 		</form>
-	</section>
-
-	<section class="mt-10 flex flex-row justify-center">
-		<Button
-			big={false}
-			onclick={async () => {
-				await fetch('/api/auth', { method: 'DELETE' });
-				await invalidateAll();
-				await goto('/');
-			}}>Logout</Button
-		>
 	</section>
 
 	{#if data.groups?.length && data.groups.length > 1}
