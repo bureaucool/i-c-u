@@ -42,10 +42,19 @@
 	const yourRawPercent = totalMinutes ? Math.round((youMinutesTotal / totalMinutes) * 100) : 0;
 	const othersRawPercent = 100 - yourRawPercent;
 
-	const youAvail = Number((userById.get(yourId) as any)?.availableTimeMinutesPerWeek ?? 0) || 0;
+	// Calculate available time as: total minutes in week (10,080) - working hours
+	const MINUTES_PER_WEEK = 10080;
+	const yourWorkingHours =
+		Number((userById.get(yourId) as any)?.availableTimeMinutesPerWeek ?? 0) || 0;
+	const youAvail = Math.max(0, MINUTES_PER_WEEK - yourWorkingHours);
+
+	// Calculate available time for each other user, then sum
 	const othersAvail = Array.from(userById.values())
 		.filter((u) => u.id !== yourId)
-		.reduce((acc, u: any) => acc + (Number(u?.availableTimeMinutesPerWeek ?? 0) || 0), 0);
+		.reduce((acc, u: any) => {
+			const workingHours = Number(u?.availableTimeMinutesPerWeek ?? 0) || 0;
+			return acc + Math.max(0, MINUTES_PER_WEEK - workingHours);
+		}, 0);
 
 	const youNorm = youAvail > 0 ? youMinutesTotal / youAvail : 0;
 	const othersNorm = othersAvail > 0 ? othersMinutesTotal / othersAvail : 0;
@@ -118,6 +127,28 @@
 			isNew: Number((tr as any).acceptedAt ?? 0) >= Number(data.recentSince ?? 0)
 		}))
 	];
+
+	// Calculate per-user stats for detailed comparison
+	const otherUsers = Array.from(userById.values()).filter((u) => u.id !== yourId);
+	const userStats = otherUsers.map((user) => {
+		const userTasks = (data.tasksDone ?? []).filter((t) => t.assignedUserId === user.id);
+		const userCreatedTreats = (data.treatsAll ?? []).filter(
+			(t) => t.accepted && t.fromUserId === user.id
+		);
+		const userMinutes = [
+			...userTasks.map((t) => minutes(t)),
+			...userCreatedTreats.map((tr) => tr.valueMinutes)
+		].reduce((acc, m) => acc + m, 0);
+		const workingHours = Number((user as any)?.availableTimeMinutesPerWeek ?? 0) || 0;
+		const availTime = Math.max(0, MINUTES_PER_WEEK - workingHours);
+		const percentUsed = availTime > 0 ? (userMinutes / availTime) * 100 : 0;
+		return {
+			user,
+			minutes: userMinutes,
+			availTime,
+			percentUsed
+		};
+	});
 </script>
 
 <div class="relative z-20 mt-5 flex flex-col gap-y-5 text-center">
@@ -146,6 +177,59 @@
 			<option value="30">Last 30 days</option>
 		</select>
 	</form>
+
+	<!-- Time usage comparison -->
+	<div class="mx-auto max-w-2xl rounded-lg bg-white/80 p-4 shadow-sm">
+		<h3 class="mb-3 text-lg font-medium">Time Usage Relative to Available Time</h3>
+		<div class="grid grid-cols-2 gap-4 text-left">
+			<div>
+				<p class="text-sm text-neutral-500">You</p>
+				<p class="text-2xl font-semibold">
+					{youAvail > 0 ? ((youMinutesTotal / youAvail) * 100).toFixed(1) : 0}%
+				</p>
+				<p class="text-xs text-neutral-400">
+					{youMinutesTotal} min of {youAvail} available
+				</p>
+			</div>
+			<div>
+				<p class="text-sm text-neutral-500">Others (Combined)</p>
+				<p class="text-2xl font-semibold">
+					{othersAvail > 0 ? ((othersMinutesTotal / othersAvail) * 100).toFixed(1) : 0}%
+				</p>
+				<p class="text-xs text-neutral-400">
+					{othersMinutesTotal} min of {othersAvail} available
+				</p>
+			</div>
+		</div>
+		<div class="mt-3 border-t border-neutral-200 pt-3">
+			<p class="text-xs text-neutral-500">
+				Normalized comparison (adjusted for availability): {yourAdjPercent}% you, {othersAdjPercent}%
+				others
+			</p>
+		</div>
+	</div>
+
+	<!-- Per-user breakdown -->
+	{#if userStats.length > 0}
+		<div class="mx-auto max-w-2xl rounded-lg bg-white/80 p-4 shadow-sm">
+			<h3 class="mb-3 text-lg font-medium">Per-User Breakdown</h3>
+			<div class="flex flex-col gap-y-3">
+				{#each userStats as stat (stat.user.id)}
+					<div class="flex items-center justify-between text-left">
+						<div class="flex-1">
+							<p class="font-medium">{stat.user.name}</p>
+							<p class="text-xs text-neutral-400">
+								{stat.minutes} min of {stat.availTime} available
+							</p>
+						</div>
+						<div class="text-right">
+							<p class="text-xl font-semibold">{stat.percentUsed.toFixed(1)}%</p>
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 
 	<div class="mt-4 grid grid-cols-2 gap-3">
 		<div>

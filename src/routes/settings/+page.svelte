@@ -228,6 +228,9 @@
 
 	<section>
 		<h3 class="text-neutral-500">Working hours (minutes/week)</h3>
+		<p class="mb-2 text-sm text-neutral-400">
+			Your available time for tasks = 10,080 min/week - your working hours
+		</p>
 		<form
 			class="flex flex-row items-center justify-between"
 			onsubmit={async (e) => {
@@ -254,15 +257,23 @@
 			<input type="hidden" name="userId" value={data.user?.id} />
 			<input
 				class="w-full text-3xl"
-				name="availableTimeMinutesPerWeek"
+				name="workingHoursMinutesPerWeek"
 				type="number"
-				placeholder={(data.user as any)?.availableTimeMinutesPerWeek ?? 600}
+				placeholder={(data.user as any)?.availableTimeMinutesPerWeek ?? 2400}
+				value={(data.user as any)?.availableTimeMinutesPerWeek ?? ''}
+				min="0"
+				max="10080"
 				required
 			/>
 			<div>
 				<Button big={false} type="submit">Save</Button>
 			</div>
 		</form>
+		{#if (data.user as any)?.availableTimeMinutesPerWeek}
+			<p class="mt-2 text-sm text-neutral-500">
+				Available time: {10080 - ((data.user as any)?.availableTimeMinutesPerWeek ?? 0)} min/week
+			</p>
+		{/if}
 	</section>
 
 	<section>

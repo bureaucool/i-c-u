@@ -90,11 +90,13 @@ export const actions: Actions = {
 		if (!locals.user) return fail(401, { message: 'unauthorized' });
 		const form = await request.formData();
 		const id = Number(form.get('userId'));
-		const minutes = Number(form.get('availableTimeMinutesPerWeek'));
-		if (!Number.isFinite(id) || !Number.isFinite(minutes)) return fail(400, { message: 'invalid' });
+		const workingHours = Number(form.get('workingHoursMinutesPerWeek'));
+		if (!Number.isFinite(id) || !Number.isFinite(workingHours))
+			return fail(400, { message: 'invalid' });
+		// Store working hours directly - the available time calculation happens in the UI
 		const { error } = await supabase
 			.from('user')
-			.update({ available_time_minutes_per_week: minutes })
+			.update({ available_time_minutes_per_week: workingHours })
 			.eq('id', id);
 		if (error) return fail(500, { message: error.message });
 		return { ok: true };
