@@ -32,7 +32,7 @@
 	<div class="mb-2 flex w-full justify-between">
 		<h2 class="text-neutral-500">{title}</h2>
 		{#if limit && tasks.length > limit}
-			<button class="text-sm underline" type="button" onclick={() => (showAll = !showAll)}>
+			<button class="text-neutral-500" type="button" onclick={() => (showAll = !showAll)}>
 				{showAll ? 'View less' : 'View all'}
 			</button>
 		{/if}

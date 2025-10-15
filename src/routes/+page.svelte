@@ -773,7 +773,7 @@
 			<TaskList
 				title="Completed"
 				tasks={localCompletedTasks ?? []}
-				limit={10}
+				limit={3}
 				userId={data.user?.id ?? -1}
 				hideUser={true}
 				{openComplete}
