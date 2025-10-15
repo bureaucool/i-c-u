@@ -1,5 +1,5 @@
 <script lang="ts">
-	import EmojiPicker from '$lib/components/emoji-picker.svelte';
+	import { standardEmojis } from '$lib/emojis';
 
 	import type { Task, User } from '$lib/types';
 	import Button from './button.svelte';
@@ -9,7 +9,7 @@
 	let {
 		task,
 		users,
-		extras = [],
+
 		onSave,
 		onCancel,
 		onDelete,
@@ -116,6 +116,28 @@
 	function toggleSubtask(index: number) {
 		subtasks[index] = { ...subtasks[index], completed: !subtasks[index].completed };
 	}
+
+	let lastTriggerTimeout: NodeJS.Timeout | null = null;
+	function searchEmojis(e: Event) {
+		if (lastTriggerTimeout) {
+			clearTimeout(lastTriggerTimeout);
+			lastTriggerTimeout = null;
+		}
+
+		const search = (e.target as HTMLInputElement).value;
+		if (lastTriggerTimeout != null) clearTimeout(lastTriggerTimeout);
+		lastTriggerTimeout = setTimeout(async () => {
+			const tempEmoji = await fetch(`/api/emoji?title=${encodeURIComponent(search)}`);
+			if (tempEmoji.ok) {
+				const tempEmojiData = await tempEmoji.json();
+				foundEmojis = [];
+				foundEmojis = tempEmojiData;
+				if (tempEmojiData.length > 0) {
+					emoji = tempEmojiData[0].emoji || tempEmojiData[0].character || '';
+				}
+			}
+		}, 1000);
+	}
 </script>
 
 {#if !saving}
@@ -152,18 +174,33 @@
 						{#each foundEmojis as emojiItem}
 							<button
 								type="button"
-								class="px-2 {emoji === (emojiItem.emoji || emojiItem.character || '')
-									? 'rounded-2xl bg-white/80'
-									: ''}"
-								onclick={() => (emoji = emojiItem.emoji || emojiItem.character || '')}
+								class="px-2 {emoji === emojiItem.emoji ? 'rounded-2xl bg-white/80' : ''}"
+								onclick={() => (emoji = emojiItem.emoji)}
 							>
-								{emojiItem.emoji || emojiItem.character}
+								{emojiItem.emoji}
 							</button>
 						{/each}
 					</div>
 				{/if}
 				<div class="flex flex-row justify-center gap-x-1">
-					<Button type="button" grey big={false} onclick={() => (showPicker = true)}>Browse</Button>
+					<Button
+						type="button"
+						grey
+						big={false}
+						onclick={() => {
+							foundEmojis = standardEmojis;
+						}}>Browse</Button
+					>
+					<input
+						type="text"
+						class="w-full rounded-lg border border-neutral-300 px-2 text-3xl"
+						name="search"
+						placeholder="Search"
+						oninput={(e) => {
+							showEmojiField = true;
+							searchEmojis(e);
+						}}
+					/>
 					<Button
 						type="button"
 						grey
@@ -172,21 +209,6 @@
 						disabled={emoji === ''}>Clear</Button
 					>
 				</div>
-			{/if}
-			{#if showPicker}<Button type="button" grey big={false} onclick={() => (showPicker = false)}
-					>Hide</Button
-				>{/if}
-			{#if showPicker}
-				<EmojiPicker
-					onPick={(e) => {
-						emoji = e;
-						showPicker = false;
-					}}
-					onClose={() => {
-						showPicker = false;
-					}}
-					{extras}
-				/>
 			{/if}
 		</div>
 		<div class="flex w-full flex-col gap-y-0">
@@ -197,42 +219,34 @@
 				required
 				bind:value={title}
 				disabled={mode === 'duplicate' && task != null}
-				onblur={async () => {
-					if (
-						((!task && mode === 'create') || mode === 'edit' || mode === 'duplicate') &&
-						title.trim().length > 0
-					) {
-						showEmojiField = true;
-						const tempEmoji = await fetch(`/api/emoji?title=${encodeURIComponent(title)}`);
-						if (tempEmoji.ok) {
-							const tempEmojiData = await tempEmoji.json();
-							foundEmojis = tempEmojiData;
-							if (tempEmojiData.length > 0) {
-								emoji = tempEmojiData[0].emoji || tempEmojiData[0].character || '';
-							}
-						}
-					}
+				onblur={async (e) => {}}
+				oninput={(e) => {
+					showPicker = false;
+					showEmojiField = true;
+					searchEmojis(e);
 				}}
 			/>
 		</div>
 
 		<div class="flex w-full flex-row gap-x-10">
 			<div class="flex grow flex-col gap-y-0">
-				<span class="text-neutral-500">Date</span>
+				<div class="flex flex-row gap-x-2">
+					<span class="text-neutral-500">Date</span>
+					{#if date}
+						<button
+							type="button"
+							onclick={() => {
+								date = '';
+								time = '';
+							}}>Clear</button
+						>
+					{/if}
+				</div>
 				<input type="date" class="w-60 text-3xl" bind:value={date} />
-				{#if date}
-					<button
-						type="button"
-						onclick={() => {
-							date = '';
-							time = '';
-						}}>clear</button
-					>
-				{/if}
 			</div>
 			<div class="flex grow flex-col gap-y-0">
 				<span class="text-neutral-500">Time</span>
-				<input type="time" bind:value={time} />
+				<input type="time" class="text-3xl" bind:value={time} />
 			</div>
 		</div>
 		<div class="flex w-full flex-col gap-y-0">
@@ -322,7 +336,7 @@
 		</div>
 
 		<div class="flex w-full flex-row flex-wrap justify-center gap-2">
-			<Button grey type="submit">Save</Button>
+			<Button grey type="submit">{mode === 'create' ? 'Create' : 'Save'}</Button>
 
 			{#if task && onDuplicate && mode === 'edit'}
 				<Button type="button" grey onclick={() => onDuplicate?.()}>Duplicate</Button>

@@ -115,7 +115,7 @@
 			alt="Rainbow"
 			class="pointer-events-none absolute opacity-0"
 		/>
-		<canvas bind:this={canvas}></canvas>
+		<canvas width={imageWidth} height={imageHeight} bind:this={canvas}></canvas>
 		<span class="absolute bottom-0 left-0 -translate-x-full text-xs">You</span>
 	</div>
 	<span

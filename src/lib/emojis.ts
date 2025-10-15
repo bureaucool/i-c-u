@@ -1,0 +1,20 @@
+export const standardEmojis = [
+	{ emoji: '😀', character: '😀' },
+	{ emoji: '😁', character: '😁' },
+	{ emoji: '😂', character: '😂' },
+	{ emoji: '🤣', character: '🤣' },
+	{ emoji: '😊', character: '😊' },
+	{ emoji: '😍', character: '😍' },
+	{ emoji: '🤔', character: '🤔' },
+	{ emoji: '👍', character: '👍' },
+	{ emoji: '🙏', character: '🙏' },
+	{ emoji: '✨', character: '✨' },
+	{ emoji: '🔥', character: '🔥' },
+	{ emoji: '🍀', character: '🍀' },
+	{ emoji: '🍕', character: '🍕' },
+	{ emoji: '☕', character: '☕' },
+	{ emoji: '🏃', character: '🏃' },
+	{ emoji: '📎', character: '📎' },
+	{ emoji: '💡', character: '💡' },
+	{ emoji: '🛠️', character: '🛠️' }
+];

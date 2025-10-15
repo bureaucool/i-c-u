@@ -129,13 +129,7 @@ export const DELETE: RequestHandler = async ({ params, cookies }) => {
 	const id = Number(params.id);
 	if (!Number.isFinite(id)) throw error(400, 'invalid id');
 
-	const { data: deleted, error: dErr } = await supabase
-		.from('task')
-		.delete()
-		.eq('id', id)
-		.select()
-		.single();
+	const { error: dErr } = await supabase.from('task').delete().eq('id', id);
 	if (dErr) throw error(500, dErr.message);
-	if (!deleted) throw error(404, 'task not found');
 	return json({ ok: true });
 };

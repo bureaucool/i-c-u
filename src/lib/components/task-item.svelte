@@ -118,12 +118,12 @@
 		{/if}
 
 		{#if completed && (hovered || $isTouch)}
-			<div class="absolute inset-y-0 right-8 z-20 flex flex-col items-center justify-center">
+			<div class="absolute inset-y-0 right-8 z-30 flex flex-col items-center justify-center">
 				<button
 					class="cursor-pointer text-2xl"
 					onclick={() => {
+						if (!confirm('Delete this task?')) return;
 						deleting = true;
-
 						clickDelete(task);
 						hovered = false;
 					}}><IconRemove /></button

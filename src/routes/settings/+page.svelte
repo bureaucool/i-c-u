@@ -56,12 +56,6 @@
 	});
 </script>
 
-<div
-	class="pointer-events-none fixed inset-x-0 top-3 z-40 mx-auto flex max-w-lg flex-row justify-end"
->
-	<a class="pointer-events-auto p-3" href="/">Back</a>
-</div>
-
 <div class="flex flex-col gap-y-10">
 	<section class="">
 		<form
@@ -357,7 +351,6 @@
 	<section class="flex flex-row justify-end">
 		<Button
 			big={false}
-			grey
 			onclick={async () => {
 				await fetch('/api/auth', { method: 'DELETE' });
 				await invalidateAll();

@@ -242,11 +242,11 @@
 
 			// Verify the client has a session
 			const { data: sessionData } = await supabase.auth.getSession();
-			console.debug('[realtime] client session check', {
-				hasSession: !!sessionData.session,
-				userId: sessionData.session?.user?.id,
-				groupId: data.groupId
-			});
+			// console.debug('[realtime] client session check', {
+			// 	hasSession: !!sessionData.session,
+			// 	userId: sessionData.session?.user?.id,
+			// 	groupId: data.groupId
+			// });
 
 			const channelName = `tasks-${data.groupId}`;
 			const channel = supabase.channel(channelName);
@@ -258,13 +258,13 @@
 					// Client-side group filter
 					const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
 					if (groupId !== data.groupId) return;
-					console.debug('[realtime] page task event', {
-						channel: channelName,
-						status: 'event',
-						eventType: payload.eventType,
-						new: payload.new,
-						old: payload.old
-					});
+					// console.debug('[realtime] page task event', {
+					// 	channel: channelName,
+					// 	status: 'event',
+					// 	eventType: payload.eventType,
+					// 	new: payload.new,
+					// 	old: payload.old
+					// });
 					if (payload.eventType === 'DELETE') {
 						removeTaskLocal(payload.old.id);
 					} else {
@@ -277,13 +277,13 @@
 				'postgres_changes',
 				{ event: '*', schema: 'public', table: 'subtask' },
 				(payload: any) => {
-					console.debug('[realtime] page subtask event', {
-						channel: channelName,
-						status: 'event',
-						eventType: payload.eventType,
-						new: payload.new,
-						old: payload.old
-					});
+					// console.debug('[realtime] page subtask event', {
+					// 	channel: channelName,
+					// 	status: 'event',
+					// 	eventType: payload.eventType,
+					// 	new: payload.new,
+					// 	old: payload.old
+					// });
 					if (payload.eventType === 'DELETE') updateSubtaskLocal('DELETE', payload.old);
 					else updateSubtaskLocal(payload.eventType, payload.new);
 				}
@@ -296,13 +296,13 @@
 					// Client-side group filter
 					const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
 					if (groupId !== data.groupId) return;
-					console.debug('[realtime] page treat event', {
-						channel: channelName,
-						status: 'event',
-						eventType: payload.eventType,
-						new: payload.new,
-						old: payload.old
-					});
+					// console.debug('[realtime] page treat event', {
+					// 	channel: channelName,
+					// 	status: 'event',
+					// 	eventType: payload.eventType,
+					// 	new: payload.new,
+					// 	old: payload.old
+					// });
 					if (payload.eventType === 'DELETE') {
 						upsertOrRemovePendingTreat(payload.old, 'DELETE');
 						upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
@@ -316,7 +316,7 @@
 			);
 
 			channel.subscribe((status) => {
-				console.debug('[realtime] page channel status', { channel: channelName, status });
+				// console.debug('[realtime] page channel status', { channel: channelName, status });
 			});
 
 			taskChannel = channel;
@@ -450,6 +450,9 @@
 		if (res.ok) {
 			// Optimistic removal; realtime will also arrive (idempotent)
 			removeTaskLocal(t.id);
+		} else {
+			console.error('Failed to delete task:', await res.text());
+			alert('Failed to delete task');
 		}
 	}
 	// Helper to display user names for treats
@@ -460,11 +463,15 @@
 </script>
 
 <div
-	class="pointer-events-none fixed inset-x-0 top-3 z-40 mx-auto flex max-w-lg flex-row justify-between"
+	class="pointer-events-none fixed inset-x-0 top-10 z-40 mx-auto flex max-w-xl flex-row justify-between px-2 md:px-7"
 >
 	{#if data.user}
-		<a class="pointer-events-auto p-3" href="/insights">Insights</a>
-		<a href="/settings" aria-label="Settings" class="pointer-events-auto p-3">Settings</a>
+		<a class="pointer-events-auto p-3 opacity-50 md:hover:opacity-100" href="/insights">Insights</a>
+		<a
+			href="/settings"
+			aria-label="Settings"
+			class="pointer-events-auto p-3 opacity-50 md:hover:opacity-100">Settings</a
+		>
 	{/if}
 </div>
 

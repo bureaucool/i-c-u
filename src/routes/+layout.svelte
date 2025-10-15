@@ -68,7 +68,7 @@
 		const {
 			data: { subscription }
 		} = supabase.auth.onAuthStateChange((event, session) => {
-			console.debug('[auth] state change', { event, hasSession: !!session });
+			// console.debug('[auth] state change', { event, hasSession: !!session });
 			if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
 				// Invalidate the specific auth dependency
 				invalidate('supabase:auth');
@@ -106,17 +106,17 @@
 				// Client-side group filter
 				const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
 				if (groupId !== data.groupId) return;
-				console.debug('[realtime] task event', {
-					channel: taskChannelName,
-					status: 'event',
-					eventType: payload.eventType,
-					new: payload.new,
-					old: payload.old
-				});
+				// console.debug('[realtime] task event', {
+				// 	channel: taskChannelName,
+				// 	status: 'event',
+				// 	eventType: payload.eventType,
+				// 	new: payload.new,
+				// 	old: payload.old
+				// });
 				scheduleInvalidate();
 			})
 			.subscribe((status) => {
-				console.debug('[realtime] task channel status', { channel: taskChannelName, status });
+				// console.debug('[realtime] task channel status', { channel: taskChannelName, status });
 			});
 
 		const treatChannel = supabase
@@ -125,18 +125,18 @@
 				// Client-side filter since server-side filter had issues
 				const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
 				if (groupId === data.groupId) {
-					console.debug('[realtime] treat event', {
-						channel: treatChannelName,
-						status: 'event',
-						eventType: payload.eventType,
-						new: payload.new,
-						old: payload.old
-					});
+					// console.debug('[realtime] treat event', {
+					// 	channel: treatChannelName,
+					// 	status: 'event',
+					// 	eventType: payload.eventType,
+					// 	new: payload.new,
+					// 	old: payload.old
+					// });
 					scheduleInvalidate();
 				}
 			})
 			.subscribe((status) => {
-				console.debug('[realtime] treat channel status', { channel: treatChannelName, status });
+				// console.debug('[realtime] treat channel status', { channel: treatChannelName, status });
 			});
 
 		return () => {
