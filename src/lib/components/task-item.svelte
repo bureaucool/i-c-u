@@ -144,7 +144,19 @@
 				<div class="flex flex-col gap-y-1">
 					<div class="flex flex-col gap-y-1">
 						{#each task.subtasks as subtask (subtask.id)}
-							<SubtaskItem {task} {subtask} />
+							<SubtaskItem
+								{task}
+								{subtask}
+								onToggle={(taskId, updated) => {
+									// update task.subtasks locally
+									task = {
+										...task,
+										subtasks: (task.subtasks ?? []).map((s) =>
+											s.id === updated.id ? { ...s, completed: updated.completed } : s
+										)
+									} as any;
+								}}
+							/>
 						{/each}
 					</div>
 				</div>

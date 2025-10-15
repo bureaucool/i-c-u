@@ -30,6 +30,51 @@
 		};
 	} = $props();
 
+	// Local task state for optimistic updates
+	let localActiveTasks = $state<Task[]>([...(data.activeTasks ?? data.tasks ?? [])]);
+	let localCompletedTasks = $state<Task[]>([...(data.completedTasks ?? [])]);
+
+	function mapTaskRowClient(r: any): Task {
+		return {
+			id: r.id,
+			title: r.title,
+			emoji: r.emoji,
+			assignedUserId: r.assigned_user_id,
+			durationMinutes: r.duration_minutes,
+			scheduledAt: r.scheduled_at,
+			recurrenceType: r.recurrence_type,
+			recurrenceInterval: r.recurrence_interval,
+			completedAt: r.completed_at,
+			description: r.description,
+			subtasks: (r.subtasks ?? []).map((st: any) => ({
+				id: st.id,
+				taskId: st.taskId ?? st.task_id,
+				title: st.title,
+				orderNumber: st.orderNumber ?? st.order_number,
+				completed: st.completed
+			}))
+		};
+	}
+
+	function upsertTaskLocal(updatedRaw: any) {
+		const updated = mapTaskRowClient(updatedRaw);
+		const isCompleted = updated.completedAt != null;
+		// Remove from both lists first
+		localActiveTasks = localActiveTasks.filter((t) => t.id !== updated.id);
+		localCompletedTasks = localCompletedTasks.filter((t) => t.id !== updated.id);
+		// Insert into the correct list
+		if (isCompleted) {
+			localCompletedTasks = [updated, ...localCompletedTasks];
+		} else {
+			localActiveTasks = [updated, ...localActiveTasks];
+		}
+	}
+
+	function removeTaskLocal(taskId: number) {
+		localActiveTasks = localActiveTasks.filter((t) => t.id !== taskId);
+		localCompletedTasks = localCompletedTasks.filter((t) => t.id !== taskId);
+	}
+
 	let showAdd = $state(false);
 	let formType: 'task' | 'treat' = $state('task');
 
@@ -88,20 +133,18 @@
 	const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
 
 	const tasksToday = $derived(
-		(data.activeTasks ?? data.tasks ?? []).filter((t) => {
+		(localActiveTasks ?? []).filter((t) => {
 			const ts = Number(t.scheduledAt ?? 0);
 			return ts >= startOfDay && ts <= endOfDay;
 		})
 	);
 	const tasksUpcoming = $derived(
-		(data.activeTasks ?? data.tasks ?? []).filter((t) => {
+		(localActiveTasks ?? []).filter((t) => {
 			const ts = Number(t.scheduledAt ?? 0);
 			return ts > endOfDay;
 		})
 	);
-	const tasksNoDate = $derived(
-		(data.activeTasks ?? data.tasks ?? []).filter((t) => t.scheduledAt == null)
-	);
+	const tasksNoDate = $derived((localActiveTasks ?? []).filter((t) => t.scheduledAt == null));
 
 	function openComplete(t: Task) {
 		selectedTask = t;
@@ -133,7 +176,7 @@
 		if (!t) return;
 		const res = await fetch(`/api/tasks/${t.id}`, { method: 'DELETE' });
 		if (res.ok) {
-			invalidateAll();
+			removeTaskLocal(t.id);
 		}
 	}
 </script>
@@ -460,7 +503,7 @@
 			/>
 
 			<TaskList
-				title="💪 Completed"
+				title="Completed"
 				tasks={data.completedTasks ?? []}
 				userId={data.user?.id ?? -1}
 				hideUser={true}
@@ -539,9 +582,10 @@
 										})
 									});
 									if (res.ok) {
+										const created = await res.json().catch(() => null);
+										if (created) upsertTaskLocal(created);
 										editOpen = false;
 										showAdd = false;
-										invalidateAll();
 									}
 								}}
 								onCancel={() => {
@@ -568,15 +612,6 @@
 									if (ok) {
 										editOpen = false;
 										showAdd = false;
-										invalidateAll();
-
-										setTimeout(() => {
-											addNotificationBig({
-												id: Date.now().toString(),
-												createdAt: Date.now(),
-												message: '💪'
-											});
-										}, 500);
 									}
 								}}
 								onDelete={async () => {
@@ -608,8 +643,8 @@
 									});
 									if (res.ok) {
 										showAdd = false;
-
-										invalidateAll();
+										const created = await res.json().catch(() => null);
+										if (created) upsertTaskLocal(created);
 
 										addNotificationBig({
 											id: Date.now().toString(),
@@ -708,9 +743,8 @@
 						});
 						if (res.ok) {
 							completeOpen = false;
-
-							invalidateAll();
-
+							const updated = await res.json().catch(() => null);
+							if (updated) upsertTaskLocal(updated);
 							setTimeout(() => {
 								addNotificationBig({
 									id: Date.now().toString(),
@@ -781,7 +815,8 @@
 								});
 								if (res.ok) {
 									completedOptionsOpen = false;
-									await invalidateAll();
+									const updated = await res.json().catch(() => null);
+									if (updated) upsertTaskLocal(updated);
 									setTimeout(() => {
 										addNotificationBig({
 											id: Date.now().toString(),
@@ -811,8 +846,9 @@
 								})
 							});
 							if (res.ok) {
+								const created = await res.json().catch(() => null);
+								if (created) upsertTaskLocal(created);
 								completedOptionsOpen = false;
-								invalidateAll();
 							}
 						}}>Duplicate</Button
 					>
@@ -823,8 +859,8 @@
 							if (!confirm('Delete this task?')) return;
 							const res = await fetch(`/api/tasks/${selectedTask.id}`, { method: 'DELETE' });
 							if (res.ok) {
+								removeTaskLocal(selectedTask.id);
 								completedOptionsOpen = false;
-								invalidateAll();
 							}
 						}}>Delete</Button
 					>

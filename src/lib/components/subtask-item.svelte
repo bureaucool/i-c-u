@@ -1,9 +1,13 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
 	import { addNotification } from '$lib/stores/notifications';
 	import type { Subtask, Task } from '$lib/types';
 	import DistributeAnimation from './distribute-animation.svelte';
-	let { task, subtask }: { task: Task; subtask: Subtask } = $props();
+	let {
+		task,
+		subtask,
+		onToggle
+	}: { task: Task; subtask: Subtask; onToggle: (taskId: number, subtask: Subtask) => void } =
+		$props();
 
 	let activateAnimation = $state(false);
 	let clicked = $state(false);
@@ -22,32 +26,28 @@
 		onclick={async () => {
 			clicked = true;
 
-			// optimistic toggle with reactive reassignment
+			// optimistic toggle for this item only
 			const prevCompleted = subtask.completed;
 			const nextCompleted = !prevCompleted;
-			const before = (task.subtasks ?? []).map((st) => ({ ...st }));
-			task = {
-				...task,
-				subtasks: (task.subtasks ?? []).map((st) =>
-					st.id === subtask.id ? { ...st, completed: nextCompleted } : st
-				)
-			} as any;
+			const prevSubtask = { ...subtask };
+			subtask = { ...subtask, completed: nextCompleted } as any;
 			try {
-				await fetch(`/api/tasks/${task.id}/subtasks/${subtask.id}`, {
+				const res = await fetch(`/api/tasks/${task.id}/subtasks/${subtask.id}`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ completed: nextCompleted })
 				});
-
+				if (!res.ok) throw new Error('Failed');
+				const updated = (await res.json()) as Subtask;
 				if (nextCompleted) {
 					activateAnimation = true;
 				}
-				await invalidateAll();
-
+				// bubble up so parent can merge into local state lists
+				onToggle?.(task.id, updated);
 				clicked = false;
 			} catch (e) {
 				// revert on error
-				task = { ...task, subtasks: before } as any;
+				subtask = prevSubtask as any;
 				addNotification({
 					id: Date.now().toString(),
 					createdAt: Date.now(),

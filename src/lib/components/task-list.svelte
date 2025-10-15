@@ -22,7 +22,7 @@
 </script>
 
 <section>
-	<h2 class="mb-2">{title}</h2>
+	<h2 class="mb-2 text-neutral-500">{title}</h2>
 	{#if tasks.length === 0}
 		<p class="text-3xl opacity-30">No tasks</p>
 	{:else}
