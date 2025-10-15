@@ -209,24 +209,23 @@
 		const supabase = createSupabaseBrowser();
 		const channelName = `tasks-${data.groupId}`;
 		const channel = supabase.channel(channelName);
-		channel.on(
-			'postgres_changes',
-			{ event: '*', schema: 'public', table: 'task', filter: `group_id=eq.${data.groupId}` },
-			(payload: any) => {
-				console.debug('[realtime] page task event', {
-					channel: channelName,
-					status: 'event',
-					eventType: payload.eventType,
-					new: payload.new,
-					old: payload.old
-				});
-				if (payload.eventType === 'DELETE') {
-					removeTaskLocal(payload.old.id);
-				} else {
-					insertOrUpdateTaskFromDb(payload.new);
-				}
+		channel.on('postgres_changes', { event: '*', schema: 'public', table: 'task' }, (payload: any) => {
+			// Client-side group filter
+			const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
+			if (groupId !== data.groupId) return;
+			console.debug('[realtime] page task event', {
+				channel: channelName,
+				status: 'event',
+				eventType: payload.eventType,
+				new: payload.new,
+				old: payload.old
+			});
+			if (payload.eventType === 'DELETE') {
+				removeTaskLocal(payload.old.id);
+			} else {
+				insertOrUpdateTaskFromDb(payload.new);
 			}
-		);
+		});
 		channel.on(
 			'postgres_changes',
 			{ event: '*', schema: 'public', table: 'subtask' },
@@ -242,28 +241,27 @@
 				else updateSubtaskLocal(payload.eventType, payload.new);
 			}
 		);
-		channel.on(
-			'postgres_changes',
-			{ event: '*', schema: 'public', table: 'treat', filter: `group_id=eq.${data.groupId}` },
-			(payload: any) => {
-				console.debug('[realtime] page treat event', {
-					channel: channelName,
-					status: 'event',
-					eventType: payload.eventType,
-					new: payload.new,
-					old: payload.old
-				});
-				if (payload.eventType === 'DELETE') {
-					upsertOrRemovePendingTreat(payload.old, 'DELETE');
-					upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
-					upsertOrRemoveOutgoingPending(payload.old, 'DELETE');
-				} else {
-					upsertOrRemovePendingTreat(payload.new, payload.eventType);
-					upsertOrRemoveAcceptedNotice(payload.new, payload.eventType);
-					upsertOrRemoveOutgoingPending(payload.new, payload.eventType);
-				}
+		channel.on('postgres_changes', { event: '*', schema: 'public', table: 'treat' }, (payload: any) => {
+			// Client-side group filter
+			const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
+			if (groupId !== data.groupId) return;
+			console.debug('[realtime] page treat event', {
+				channel: channelName,
+				status: 'event',
+				eventType: payload.eventType,
+				new: payload.new,
+				old: payload.old
+			});
+			if (payload.eventType === 'DELETE') {
+				upsertOrRemovePendingTreat(payload.old, 'DELETE');
+				upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
+				upsertOrRemoveOutgoingPending(payload.old, 'DELETE');
+			} else {
+				upsertOrRemovePendingTreat(payload.new, payload.eventType);
+				upsertOrRemoveAcceptedNotice(payload.new, payload.eventType);
+				upsertOrRemoveOutgoingPending(payload.new, payload.eventType);
 			}
-		);
+		});
 		channel.subscribe((status) => {
 			console.debug('[realtime] page channel status', { channel: channelName, status });
 		});

@@ -59,8 +59,9 @@
 		rangeDays.set(data.rangeDays ?? 7);
 	});
 
-	// Realtime: listen for changes to tasks and treats and invalidate
+	// Realtime: listen for changes to tasks and treats and invalidate (client-only)
 	$effect(() => {
+		if (!browser) return;
 		if (!data.user || !data.groupId) return;
 
 		const supabase = createSupabaseBrowser();
@@ -80,20 +81,19 @@
 
 		const taskChannel = supabase
 			.channel(taskChannelName)
-			.on(
-				'postgres_changes',
-				{ event: '*', schema: 'public', table: 'task', filter: `group_id=eq.${data.groupId}` },
-				(payload) => {
-					console.debug('[realtime] task event', {
-						channel: taskChannelName,
-						status: 'event',
-						eventType: payload.eventType,
-						new: payload.new,
-						old: payload.old
-					});
-					scheduleInvalidate();
-				}
-			)
+			.on('postgres_changes', { event: '*', schema: 'public', table: 'task' }, (payload) => {
+				// Client-side group filter
+				const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
+				if (groupId !== data.groupId) return;
+				console.debug('[realtime] task event', {
+					channel: taskChannelName,
+					status: 'event',
+					eventType: payload.eventType,
+					new: payload.new,
+					old: payload.old
+				});
+				scheduleInvalidate();
+			})
 			.subscribe((status) => {
 				console.debug('[realtime] task channel status', { channel: taskChannelName, status });
 			});
