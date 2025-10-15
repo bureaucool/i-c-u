@@ -10,6 +10,8 @@
 	import { fade, fly } from 'svelte/transition';
 
 	import Portal from 'svelte-portal';
+	import { onMount, onDestroy } from 'svelte';
+	import { createSupabaseBrowser } from '$lib/supabaseClient';
 	import Fireworks from '$lib/components/fireworks.svelte';
 	import { addNotification, addNotificationBig } from '$lib/stores/notifications';
 	import TaskList from '$lib/components/task-list.svelte';
@@ -33,6 +35,7 @@
 	// Local task state for optimistic updates
 	let localActiveTasks = $state<Task[]>([...(data.activeTasks ?? data.tasks ?? [])]);
 	let localCompletedTasks = $state<Task[]>([...(data.completedTasks ?? [])]);
+	let localPendingTreats = $state<Array<any>>([...(data.pendingTreats ?? [])]);
 
 	function mapTaskRowClient(r: any): Task {
 		return {
@@ -74,6 +77,160 @@
 		localActiveTasks = localActiveTasks.filter((t) => t.id !== taskId);
 		localCompletedTasks = localCompletedTasks.filter((t) => t.id !== taskId);
 	}
+
+	// Realtime subscription to keep tasks/subtasks in sync with DB
+	let taskChannel: any = null;
+
+	function mapTaskFromDbRow(r: any): Task {
+		const existing = findTaskLocal(r.id);
+		return {
+			id: r.id,
+			title: r.title,
+			emoji: r.emoji,
+			assignedUserId: r.assigned_user_id ?? null,
+			durationMinutes: r.duration_minutes ?? null,
+			scheduledAt: r.scheduled_at ?? null,
+			recurrenceType: r.recurrence_type ?? null,
+			recurrenceInterval: r.recurrence_interval ?? null,
+			completedAt: r.completed_at ?? null,
+			description: r.description ?? null,
+			subtasks: existing?.subtasks ?? []
+		};
+	}
+
+	function findTaskLocal(taskId: number): Task | undefined {
+		return (
+			localActiveTasks.find((t) => t.id === taskId) ||
+			localCompletedTasks.find((t) => t.id === taskId)
+		);
+	}
+
+	function insertOrUpdateTaskFromDb(row: any) {
+		const mapped = mapTaskFromDbRow(row);
+		// Remove from both lists
+		localActiveTasks = localActiveTasks.filter((t) => t.id !== mapped.id);
+		localCompletedTasks = localCompletedTasks.filter((t) => t.id !== mapped.id);
+		// Add to correct list
+		if (mapped.completedAt != null) {
+			localCompletedTasks = [mapped, ...localCompletedTasks];
+		} else {
+			localActiveTasks = [mapped, ...localActiveTasks];
+		}
+	}
+
+	function updateSubtaskLocal(evType: 'INSERT' | 'UPDATE' | 'DELETE', row: any) {
+		const taskId = row.task_id ?? row.taskId;
+		const mapSub = (r: any) => ({
+			id: r.id,
+			taskId: r.task_id ?? r.taskId,
+			title: r.title,
+			orderNumber: r.order_number ?? r.orderNumber,
+			completed: r.completed
+		});
+		const updater = (t: Task) => {
+			const current = t.subtasks ?? [];
+			if (evType === 'DELETE') {
+				return { ...t, subtasks: current.filter((s) => s.id !== row.id) } as Task;
+			}
+			const updated = mapSub(row);
+			let next = current.map((s) => (s.id === updated.id ? { ...s, ...updated } : s));
+			if (!current.some((s) => s.id === updated.id)) {
+				next = [...current, updated];
+			}
+			// keep order if orderNumber present
+			next = next.slice().sort((a, b) => (a.orderNumber ?? 0) - (b.orderNumber ?? 0));
+			return { ...t, subtasks: next } as Task;
+		};
+		localActiveTasks = localActiveTasks.map((t) => (t.id === taskId ? updater(t) : t));
+		localCompletedTasks = localCompletedTasks.map((t) => (t.id === taskId ? updater(t) : t));
+	}
+
+	function mapTreatFromDbRow(r: any) {
+		return {
+			id: r.id,
+			groupId: r.group_id,
+			title: r.title,
+			emoji: r.emoji,
+			fromUserId: r.from_user_id,
+			toUserId: r.to_user_id,
+			accepted: r.accepted,
+			valueMinutes: r.value_minutes,
+			createdAt: r.created_at,
+			acceptedAt: r.accepted_at,
+			declinedAt: r.declined_at,
+			feedbackNote: r.feedback_note,
+			acceptedNotifiedAt: r.accepted_notified_at
+		};
+	}
+
+	function upsertOrRemovePendingTreat(row: any, eventType: 'INSERT' | 'UPDATE' | 'DELETE') {
+		const id = row.id;
+		// remove first
+		localPendingTreats = (localPendingTreats ?? []).filter((t) => t.id !== id);
+		if (eventType === 'DELETE') return;
+		const isPending =
+			row.to_user_id === (data.user?.id ?? -1) && row.accepted === false && row.declined_at == null;
+		if (isPending) {
+			localPendingTreats = [mapTreatFromDbRow(row), ...localPendingTreats];
+		}
+	}
+
+	function upsertOrRemoveAcceptedNotice(row: any, eventType: 'INSERT' | 'UPDATE' | 'DELETE') {
+		const id = row.id;
+		acceptedNotices = (acceptedNotices ?? []).filter((t) => t.id !== id);
+		if (eventType === 'DELETE') return;
+		const shouldShow =
+			row.from_user_id === (data.user?.id ?? -1) &&
+			row.accepted === true &&
+			row.accepted_notified_at == null;
+		if (shouldShow) {
+			acceptedNotices = [mapTreatFromDbRow(row), ...acceptedNotices];
+		}
+	}
+
+	onMount(() => {
+		if (!data.groupId) return;
+		const supabase = createSupabaseBrowser();
+		const channel = supabase.channel(`tasks-${data.groupId}`);
+		channel.on(
+			'postgres_changes',
+			{ event: '*', schema: 'public', table: 'task', filter: `group_id=eq.${data.groupId}` },
+			(payload: any) => {
+				if (payload.eventType === 'DELETE') {
+					removeTaskLocal(payload.old.id);
+				} else {
+					insertOrUpdateTaskFromDb(payload.new);
+				}
+			}
+		);
+		channel.on(
+			'postgres_changes',
+			{ event: '*', schema: 'public', table: 'subtask' },
+			(payload: any) => {
+				if (payload.eventType === 'DELETE') updateSubtaskLocal('DELETE', payload.old);
+				else updateSubtaskLocal(payload.eventType, payload.new);
+			}
+		);
+		channel.on(
+			'postgres_changes',
+			{ event: '*', schema: 'public', table: 'treat', filter: `group_id=eq.${data.groupId}` },
+			(payload: any) => {
+				if (payload.eventType === 'DELETE') {
+					upsertOrRemovePendingTreat(payload.old, 'DELETE');
+					upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
+				} else {
+					upsertOrRemovePendingTreat(payload.new, payload.eventType);
+					upsertOrRemoveAcceptedNotice(payload.new, payload.eventType);
+				}
+			}
+		);
+		channel.subscribe();
+		taskChannel = channel;
+	});
+
+	onDestroy(() => {
+		taskChannel?.unsubscribe?.();
+	});
 
 	let showAdd = $state(false);
 	let formType: 'task' | 'treat' = $state('task');
@@ -176,6 +333,7 @@
 		if (!t) return;
 		const res = await fetch(`/api/tasks/${t.id}`, { method: 'DELETE' });
 		if (res.ok) {
+			// Optimistic removal; realtime will also arrive (idempotent)
 			removeTaskLocal(t.id);
 		}
 	}
@@ -460,16 +618,15 @@
 				</form>
 			</div>
 		{:else}
-			{#if (data.pendingTreats ?? []).length > 0}
-				{#each data.pendingTreats ?? [] as tr}
+			{#if (localPendingTreats ?? []).length > 0}
+				{#each localPendingTreats ?? [] as tr}
 					<Floating classes="z-50">
 						<AcceptTreat
 							onAccept={(id) => (acceptingTreatId = id)}
 							{tr}
 							{acceptingTreatId}
 							onUpdate={(updated) => {
-								// Remove or update from pending list in data; keeping it simple by removing
-								(data as any).pendingTreats = (data.pendingTreats ?? []).filter(
+								localPendingTreats = (localPendingTreats ?? []).filter(
 									(t) => t.id !== (updated as any).id
 								);
 							}}
@@ -514,7 +671,7 @@
 
 			<TaskList
 				title="Completed"
-				tasks={data.completedTasks ?? []}
+				tasks={localCompletedTasks ?? []}
 				userId={data.user?.id ?? -1}
 				hideUser={true}
 				{openComplete}
