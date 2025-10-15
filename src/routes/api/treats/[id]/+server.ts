@@ -72,3 +72,35 @@ export const PATCH: RequestHandler = async ({ params, request, locals, cookies }
 	if (!updated) throw error(404, 'treat not found');
 	return json(updated);
 };
+
+export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
+	const supabase = createSupabaseServer(cookies);
+	const id = Number(params.id);
+	if (!Number.isFinite(id)) throw error(400, 'invalid id');
+
+	// Load treat to authorize action
+	const { data: existing, error: eErr } = await supabase
+		.from('treat')
+		.select('*')
+		.eq('id', id)
+		.maybeSingle();
+	if (eErr) throw error(500, eErr.message);
+	if (!existing) throw error(404, 'treat not found');
+
+	const isCreator = (locals.user?.id ?? 0) === existing.from_user_id;
+	if (!isCreator) throw error(403, 'only creator can delete/cancel treat');
+	// Only allow delete if still pending (not accepted/declined)
+	if (existing.accepted === true || existing.declined_at != null) {
+		throw error(400, 'cannot delete a treat that was already accepted/declined');
+	}
+
+	const { data: deleted, error: dErr } = await supabase
+		.from('treat')
+		.delete()
+		.eq('id', id)
+		.select()
+		.single();
+	if (dErr) throw error(500, dErr.message);
+	if (!deleted) throw error(404, 'treat not found');
+	return json({ ok: true });
+};

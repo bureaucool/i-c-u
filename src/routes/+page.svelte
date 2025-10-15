@@ -18,6 +18,7 @@
 	import TreatAccepted from '$lib/components/treat-accepted.svelte';
 	import RotatingContainer from '$lib/components/rotating-container.svelte';
 	import MiniTag from '$lib/components/mini-tag.svelte';
+	import IconRemove from '$lib/components/icon-remove.svelte';
 
 	let {
 		data
@@ -691,7 +692,7 @@
 					<ul class="flex flex-col gap-y-1">
 						{#each outgoingPendingTreats ?? [] as tr}
 							<li
-								class="flex items-center justify-between gap-x-2 rounded-full border border-neutral-200 px-6 py-4"
+								class="relative flex items-center justify-between gap-x-2 rounded-full border border-neutral-200 px-6 py-4"
 							>
 								<div class="flex items-center gap-x-2">
 									<span class="text-2xl">{tr.emoji ?? '♥️'}</span>
@@ -701,6 +702,20 @@
 									</div>
 
 									<!-- <span class="text-neutral-500">({tr.valueMinutes} min)</span> -->
+								</div>
+
+								<div
+									class="absolute inset-y-0 right-8 z-20 flex flex-col items-center justify-center"
+								>
+									<button
+										class="cursor-pointer text-2xl"
+										onclick={async () => {
+											await fetch(`/api/treats/${tr.id}`, { method: 'DELETE' });
+											outgoingPendingTreats = (outgoingPendingTreats ?? []).filter(
+												(t) => t.id !== tr.id
+											);
+										}}><IconRemove /></button
+									>
 								</div>
 							</li>
 						{/each}
