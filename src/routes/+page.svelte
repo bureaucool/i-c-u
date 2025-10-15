@@ -343,7 +343,12 @@
 			return ts > endOfDay;
 		})
 	);
-	const tasksNoDate = $derived((localActiveTasks ?? []).filter((t) => t.scheduledAt == null));
+	const tasksNoDate = $derived(
+		(localActiveTasks ?? []).filter((t) => {
+			const ts = t.scheduledAt;
+			return ts == null || Number(ts) < startOfDay; // include overdue
+		})
+	);
 
 	function openComplete(t: Task) {
 		selectedTask = t;
@@ -389,13 +394,9 @@
 <div
 	class="pointer-events-none fixed inset-x-0 top-3 z-40 mx-auto flex max-w-lg flex-row justify-between"
 >
-	<a class="pointer-events-auto p-3" href="/">Insights</a>
 	{#if data.user}
-		<div class="pointer-events-none fixed inset-x-0 bottom-3 z-40 w-full md:top-3">
-			<div class="mx-auto flex max-w-xl justify-end px-7">
-				<a href="/settings" aria-label="Settings" class="pointer-events-auto p-3">Settings</a>
-			</div>
-		</div>
+		<a class="pointer-events-auto p-3" href="/">Insights</a>
+		<a href="/settings" aria-label="Settings" class="pointer-events-auto p-3">Settings</a>
 	{/if}
 </div>
 
