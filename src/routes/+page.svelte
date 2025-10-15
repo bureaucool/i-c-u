@@ -893,8 +893,14 @@
 										message: '❤️',
 										createdAt: Date.now()
 									});
-
-									invalidateAll();
+									const created = await res.json().catch(() => null);
+									if (created) {
+										// Optimistically add to outgoing pending; realtime will confirm
+										outgoingPendingTreats = [
+											mapTreatFromDbRow(created),
+											...(outgoingPendingTreats ?? [])
+										];
+									}
 								} else {
 									const err = await res.json().catch(() => ({}));
 									addNotification({
