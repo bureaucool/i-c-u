@@ -618,23 +618,6 @@
 				</form>
 			</div>
 		{:else}
-			{#if (localPendingTreats ?? []).length > 0}
-				{#each localPendingTreats ?? [] as tr}
-					<Floating classes="z-50">
-						<AcceptTreat
-							onAccept={(id) => (acceptingTreatId = id)}
-							{tr}
-							{acceptingTreatId}
-							onUpdate={(updated) => {
-								localPendingTreats = (localPendingTreats ?? []).filter(
-									(t) => t.id !== (updated as any).id
-								);
-							}}
-						/>
-					</Floating>
-				{/each}
-			{/if}
-
 			{#if (acceptedNotices ?? []).length > 0}
 				{#each acceptedNotices as tr}
 					<Floating classes="z-50">
@@ -672,6 +655,7 @@
 			<TaskList
 				title="Completed"
 				tasks={localCompletedTasks ?? []}
+				limit={10}
 				userId={data.user?.id ?? -1}
 				hideUser={true}
 				{openComplete}
