@@ -40,19 +40,22 @@
 	let localPendingTreats = $state<Array<any>>([...(data.pendingTreats ?? [])]);
 	let outgoingPendingTreats = $state<Array<any>>([...((data as any).outgoingPendingTreats ?? [])]);
 
-	// Sync local state when server data changes (e.g., after login/invalidation)
+	// Track previous user to detect login/logout
+	let prevUserId = $state<number | null>(data.user?.id ?? null);
+
+	// Sync local state ONLY when user changes (login/logout), not on every data change
+	// This prevents overwriting realtime updates
 	$effect(() => {
-		// Only update if we have data (user is logged in)
-		if (data.activeTasks || data.tasks) {
+		const currentUserId = data.user?.id ?? null;
+
+		// Only sync if user changed (login/logout) or initial load
+		if (currentUserId !== prevUserId) {
+			prevUserId = currentUserId;
+
+			// Sync all local state with fresh server data
 			localActiveTasks = [...(data.activeTasks ?? data.tasks ?? [])];
-		}
-		if (data.completedTasks) {
 			localCompletedTasks = [...(data.completedTasks ?? [])];
-		}
-		if (data.pendingTreats) {
 			localPendingTreats = [...(data.pendingTreats ?? [])];
-		}
-		if ((data as any).outgoingPendingTreats) {
 			outgoingPendingTreats = [...((data as any).outgoingPendingTreats ?? [])];
 		}
 	});
@@ -221,80 +224,113 @@
 		}
 	}
 
-	onMount(() => {
-		if (!data.groupId) return;
-		const supabase = createSupabaseBrowser();
-		const channelName = `tasks-${data.groupId}`;
-		const channel = supabase.channel(channelName);
-		channel.on(
-			'postgres_changes',
-			{ event: '*', schema: 'public', table: 'task' },
-			(payload: any) => {
-				// Client-side group filter
-				const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
-				if (groupId !== data.groupId) return;
-				console.debug('[realtime] page task event', {
-					channel: channelName,
-					status: 'event',
-					eventType: payload.eventType,
-					new: payload.new,
-					old: payload.old
-				});
-				if (payload.eventType === 'DELETE') {
-					removeTaskLocal(payload.old.id);
-				} else {
-					insertOrUpdateTaskFromDb(payload.new);
-				}
+	// Set up realtime subscriptions reactively based on user and groupId
+	$effect(() => {
+		// Only subscribe if user is logged in and has a group
+		if (!data.user || !data.groupId) {
+			// Clean up any existing subscription
+			if (taskChannel) {
+				taskChannel.unsubscribe();
+				taskChannel = null;
 			}
-		);
-		channel.on(
-			'postgres_changes',
-			{ event: '*', schema: 'public', table: 'subtask' },
-			(payload: any) => {
-				console.debug('[realtime] page subtask event', {
-					channel: channelName,
-					status: 'event',
-					eventType: payload.eventType,
-					new: payload.new,
-					old: payload.old
-				});
-				if (payload.eventType === 'DELETE') updateSubtaskLocal('DELETE', payload.old);
-				else updateSubtaskLocal(payload.eventType, payload.new);
-			}
-		);
-		channel.on(
-			'postgres_changes',
-			{ event: '*', schema: 'public', table: 'treat' },
-			(payload: any) => {
-				// Client-side group filter
-				const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
-				if (groupId !== data.groupId) return;
-				console.debug('[realtime] page treat event', {
-					channel: channelName,
-					status: 'event',
-					eventType: payload.eventType,
-					new: payload.new,
-					old: payload.old
-				});
-				if (payload.eventType === 'DELETE') {
-					upsertOrRemovePendingTreat(payload.old, 'DELETE');
-					upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
-					upsertOrRemoveOutgoingPending(payload.old, 'DELETE');
-				} else {
-					upsertOrRemovePendingTreat(payload.new, payload.eventType);
-					upsertOrRemoveAcceptedNotice(payload.new, payload.eventType);
-					upsertOrRemoveOutgoingPending(payload.new, payload.eventType);
-				}
-			}
-		);
-		channel.subscribe((status) => {
-			console.debug('[realtime] page channel status', { channel: channelName, status });
-		});
-		taskChannel = channel;
-	});
+			return;
+		}
 
-	onDestroy(() => {
-		taskChannel?.unsubscribe?.();
+		const setupRealtime = async () => {
+			// Create a fresh client instance to ensure it has the latest session
+			const supabase = createSupabaseBrowser(true);
+
+			// Verify the client has a session
+			const { data: sessionData } = await supabase.auth.getSession();
+			console.debug('[realtime] client session check', {
+				hasSession: !!sessionData.session,
+				userId: sessionData.session?.user?.id,
+				groupId: data.groupId
+			});
+
+			const channelName = `tasks-${data.groupId}`;
+			const channel = supabase.channel(channelName);
+
+			channel.on(
+				'postgres_changes',
+				{ event: '*', schema: 'public', table: 'task' },
+				(payload: any) => {
+					// Client-side group filter
+					const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
+					if (groupId !== data.groupId) return;
+					console.debug('[realtime] page task event', {
+						channel: channelName,
+						status: 'event',
+						eventType: payload.eventType,
+						new: payload.new,
+						old: payload.old
+					});
+					if (payload.eventType === 'DELETE') {
+						removeTaskLocal(payload.old.id);
+					} else {
+						insertOrUpdateTaskFromDb(payload.new);
+					}
+				}
+			);
+
+			channel.on(
+				'postgres_changes',
+				{ event: '*', schema: 'public', table: 'subtask' },
+				(payload: any) => {
+					console.debug('[realtime] page subtask event', {
+						channel: channelName,
+						status: 'event',
+						eventType: payload.eventType,
+						new: payload.new,
+						old: payload.old
+					});
+					if (payload.eventType === 'DELETE') updateSubtaskLocal('DELETE', payload.old);
+					else updateSubtaskLocal(payload.eventType, payload.new);
+				}
+			);
+
+			channel.on(
+				'postgres_changes',
+				{ event: '*', schema: 'public', table: 'treat' },
+				(payload: any) => {
+					// Client-side group filter
+					const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
+					if (groupId !== data.groupId) return;
+					console.debug('[realtime] page treat event', {
+						channel: channelName,
+						status: 'event',
+						eventType: payload.eventType,
+						new: payload.new,
+						old: payload.old
+					});
+					if (payload.eventType === 'DELETE') {
+						upsertOrRemovePendingTreat(payload.old, 'DELETE');
+						upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
+						upsertOrRemoveOutgoingPending(payload.old, 'DELETE');
+					} else {
+						upsertOrRemovePendingTreat(payload.new, payload.eventType);
+						upsertOrRemoveAcceptedNotice(payload.new, payload.eventType);
+						upsertOrRemoveOutgoingPending(payload.new, payload.eventType);
+					}
+				}
+			);
+
+			channel.subscribe((status) => {
+				console.debug('[realtime] page channel status', { channel: channelName, status });
+			});
+
+			taskChannel = channel;
+		};
+
+		setupRealtime();
+
+		// Cleanup function
+		return () => {
+			if (taskChannel) {
+				taskChannel.unsubscribe();
+				taskChannel = null;
+			}
+		};
 	});
 
 	let showAdd = $state(false);
@@ -308,9 +344,10 @@
 	// One-time acceptance notification (for creator) - reactive to data changes
 	let acceptedNotices = $state<Array<any>>([...((data as any).acceptedTreatsToNotify ?? [])]);
 
-	// Sync acceptedNotices when data changes
+	// Sync acceptedNotices only on user change (not on every data change to preserve realtime updates)
 	$effect(() => {
-		if ((data as any).acceptedTreatsToNotify) {
+		const currentUserId = data.user?.id ?? null;
+		if (currentUserId !== prevUserId) {
 			acceptedNotices = [...((data as any).acceptedTreatsToNotify ?? [])];
 		}
 	});
