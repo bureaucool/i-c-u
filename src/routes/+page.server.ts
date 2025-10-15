@@ -122,8 +122,21 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		}
 	}
 
-	const usersRes = await supabase.from('user').select('*');
-	users = (usersRes.data ?? []).map(mapUserRow);
+	// Only include users who are members of the current group
+	if (gid) {
+		const { data: members, error: mErr } = await supabase
+			.from('group_member')
+			.select('user: user (id, name, email, available_time_minutes_per_week, password_hash)')
+			.eq('group_id', gid);
+		if (!mErr) {
+			users = (members ?? [])
+				.map((row: any) => row.user)
+				.filter((u: any) => !!u)
+				.map(mapUserRow);
+		}
+	} else {
+		users = [];
+	}
 	return {
 		user: locals.user,
 		groupId: gid ?? null,
