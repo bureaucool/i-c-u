@@ -10,8 +10,8 @@
 	} = $props();
 </script>
 
-<div class="flex items-center gap-x-3 rounded-lg bg-white p-3 shadow">
-	<span class="text-2xl">{tr.emoji ?? '♥️'}</span>
+<div class="flex items-center gap-x-3 rounded-full bg-white p-3 shadow">
+	<span class="text-3xl">{tr.emoji ?? '♥️'}</span>
 	<div class="flex flex-col">
 		<strong>Accepted</strong>
 		<span class="opacity-80">{tr.title} ({tr.valueMinutes} min)</span>
