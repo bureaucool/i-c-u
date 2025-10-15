@@ -5,7 +5,8 @@ import { changePassword, createUserWithPassword } from '$lib/server/auth';
 import { fail } from '@sveltejs/kit';
 import { PUBLIC_APP_URL } from '$env/static/public';
 
-export const load: PageServerLoad = async ({ locals, cookies }) => {
+export const load: PageServerLoad = async ({ locals, cookies, depends }) => {
+	depends('supabase:auth');
 	const supabase = createSupabaseServer(cookies);
 	if (!locals.user) return { user: null } as any;
 

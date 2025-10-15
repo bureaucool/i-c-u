@@ -2,7 +2,7 @@
 	import type { Task, User } from '$lib/types';
 	import TaskDialog from '$lib/components/task-dialog.svelte';
 	import TreatDialog from '$lib/components/treat-dialog.svelte';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, goto } from '$app/navigation';
 	import Button from '$lib/components/button.svelte';
 	import AcceptTreat from '$lib/components/accept-treat.svelte';
 	import Floating from '$lib/components/floating.svelte';
@@ -39,6 +39,23 @@
 	let localCompletedTasks = $state<Task[]>([...(data.completedTasks ?? [])]);
 	let localPendingTreats = $state<Array<any>>([...(data.pendingTreats ?? [])]);
 	let outgoingPendingTreats = $state<Array<any>>([...((data as any).outgoingPendingTreats ?? [])]);
+
+	// Sync local state when server data changes (e.g., after login/invalidation)
+	$effect(() => {
+		// Only update if we have data (user is logged in)
+		if (data.activeTasks || data.tasks) {
+			localActiveTasks = [...(data.activeTasks ?? data.tasks ?? [])];
+		}
+		if (data.completedTasks) {
+			localCompletedTasks = [...(data.completedTasks ?? [])];
+		}
+		if (data.pendingTreats) {
+			localPendingTreats = [...(data.pendingTreats ?? [])];
+		}
+		if ((data as any).outgoingPendingTreats) {
+			outgoingPendingTreats = [...((data as any).outgoingPendingTreats ?? [])];
+		}
+	});
 
 	function mapTaskRowClient(r: any): Task {
 		return {
@@ -209,23 +226,27 @@
 		const supabase = createSupabaseBrowser();
 		const channelName = `tasks-${data.groupId}`;
 		const channel = supabase.channel(channelName);
-		channel.on('postgres_changes', { event: '*', schema: 'public', table: 'task' }, (payload: any) => {
-			// Client-side group filter
-			const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
-			if (groupId !== data.groupId) return;
-			console.debug('[realtime] page task event', {
-				channel: channelName,
-				status: 'event',
-				eventType: payload.eventType,
-				new: payload.new,
-				old: payload.old
-			});
-			if (payload.eventType === 'DELETE') {
-				removeTaskLocal(payload.old.id);
-			} else {
-				insertOrUpdateTaskFromDb(payload.new);
+		channel.on(
+			'postgres_changes',
+			{ event: '*', schema: 'public', table: 'task' },
+			(payload: any) => {
+				// Client-side group filter
+				const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
+				if (groupId !== data.groupId) return;
+				console.debug('[realtime] page task event', {
+					channel: channelName,
+					status: 'event',
+					eventType: payload.eventType,
+					new: payload.new,
+					old: payload.old
+				});
+				if (payload.eventType === 'DELETE') {
+					removeTaskLocal(payload.old.id);
+				} else {
+					insertOrUpdateTaskFromDb(payload.new);
+				}
 			}
-		});
+		);
 		channel.on(
 			'postgres_changes',
 			{ event: '*', schema: 'public', table: 'subtask' },
@@ -241,27 +262,31 @@
 				else updateSubtaskLocal(payload.eventType, payload.new);
 			}
 		);
-		channel.on('postgres_changes', { event: '*', schema: 'public', table: 'treat' }, (payload: any) => {
-			// Client-side group filter
-			const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
-			if (groupId !== data.groupId) return;
-			console.debug('[realtime] page treat event', {
-				channel: channelName,
-				status: 'event',
-				eventType: payload.eventType,
-				new: payload.new,
-				old: payload.old
-			});
-			if (payload.eventType === 'DELETE') {
-				upsertOrRemovePendingTreat(payload.old, 'DELETE');
-				upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
-				upsertOrRemoveOutgoingPending(payload.old, 'DELETE');
-			} else {
-				upsertOrRemovePendingTreat(payload.new, payload.eventType);
-				upsertOrRemoveAcceptedNotice(payload.new, payload.eventType);
-				upsertOrRemoveOutgoingPending(payload.new, payload.eventType);
+		channel.on(
+			'postgres_changes',
+			{ event: '*', schema: 'public', table: 'treat' },
+			(payload: any) => {
+				// Client-side group filter
+				const groupId = (payload.new as any)?.group_id || (payload.old as any)?.group_id;
+				if (groupId !== data.groupId) return;
+				console.debug('[realtime] page treat event', {
+					channel: channelName,
+					status: 'event',
+					eventType: payload.eventType,
+					new: payload.new,
+					old: payload.old
+				});
+				if (payload.eventType === 'DELETE') {
+					upsertOrRemovePendingTreat(payload.old, 'DELETE');
+					upsertOrRemoveAcceptedNotice(payload.old, 'DELETE');
+					upsertOrRemoveOutgoingPending(payload.old, 'DELETE');
+				} else {
+					upsertOrRemovePendingTreat(payload.new, payload.eventType);
+					upsertOrRemoveAcceptedNotice(payload.new, payload.eventType);
+					upsertOrRemoveOutgoingPending(payload.new, payload.eventType);
+				}
 			}
-		});
+		);
 		channel.subscribe((status) => {
 			console.debug('[realtime] page channel status', { channel: channelName, status });
 		});
@@ -282,6 +307,14 @@
 
 	// One-time acceptance notification (for creator) - reactive to data changes
 	let acceptedNotices = $state<Array<any>>([...((data as any).acceptedTreatsToNotify ?? [])]);
+
+	// Sync acceptedNotices when data changes
+	$effect(() => {
+		if ((data as any).acceptedTreatsToNotify) {
+			acceptedNotices = [...((data as any).acceptedTreatsToNotify ?? [])];
+		}
+	});
+
 	async function acknowledgeAccepted(id: number) {
 		await fetch(`/api/treats/${id}`, {
 			method: 'PATCH',
@@ -438,8 +471,9 @@
 							body: JSON.stringify(body)
 						});
 						if (res.ok) {
+							// Invalidate all server data to reload with new auth context
+							await invalidateAll();
 							loginOpen = false;
-							invalidateAll();
 							submitting = false;
 							loggingIn = false;
 						} else {
@@ -628,11 +662,9 @@
 			</div>
 		</div>
 	{:else}
-		<div class="pointer-events-none fixed inset-x-0 bottom-3 z-40 md:top-3">
+		<div class="pointer-events-none fixed inset-x-0 top-3 z-40 mx-auto flex w-full max-w-lg">
 			<div class="mx-auto flex max-w-xl justify-end px-7">
-				<span onclick={() => (listOpen = true)} class="pointer-events-auto p-3"
-					><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></span
-				>
+				<span onclick={() => (listOpen = true)} class="pointer-events-auto p-3">Account</span>
 			</div>
 		</div>
 	{/if}

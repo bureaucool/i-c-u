@@ -1,7 +1,8 @@
 import type { LayoutServerLoad } from './$types';
 import { createSupabaseServer } from '$lib/server/supabase';
 
-export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
+export const load: LayoutServerLoad = async ({ locals, url, cookies, depends }) => {
+	depends('supabase:auth');
 	const supabase = createSupabaseServer(cookies);
 	let activeGroup: { id: number; title: string } | null = null;
 	const gid = locals.groupId;

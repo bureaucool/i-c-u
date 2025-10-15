@@ -1,7 +1,8 @@
 import type { PageServerLoad } from './$types';
 import { createSupabaseServer } from '$lib/server/supabase';
 
-export const load: PageServerLoad = async ({ locals, url, cookies }) => {
+export const load: PageServerLoad = async ({ locals, url, cookies, depends }) => {
+	depends('supabase:auth');
 	const supabase = createSupabaseServer(cookies);
 	if (!locals.user) return { user: null };
 	const gid = locals.groupId;

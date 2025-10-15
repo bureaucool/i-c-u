@@ -12,11 +12,7 @@ export function createSupabaseBrowser() {
 	if (!PUBLIC_SUPABASE_URL || !publicKey) throw new Error('Supabase env vars missing');
 
 	// Use @supabase/ssr browser client which properly handles auth cookies
-	supabaseInstance = createBrowserClient(PUBLIC_SUPABASE_URL, publicKey, {
-		global: {
-			headers: {}
-		}
-	});
+	supabaseInstance = createBrowserClient(PUBLIC_SUPABASE_URL, publicKey);
 
 	return supabaseInstance;
 }

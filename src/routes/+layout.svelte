@@ -6,7 +6,7 @@
 	import { fade } from 'svelte/transition';
 	import { percentages, rangeDays } from '$lib/stores/states';
 	import { createSupabaseBrowser } from '$lib';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, invalidate } from '$app/navigation';
 	import { browser } from '$app/environment';
 
 	import Notifications from '$lib/components/notifications.svelte';
@@ -57,6 +57,27 @@
 	$effect(() => {
 		percentages.set(data.globalAdjustedPercentages ?? [0, 0]);
 		rangeDays.set(data.rangeDays ?? 7);
+	});
+
+	// Listen to Supabase auth state changes and invalidate when auth changes
+	$effect(() => {
+		if (!browser) return;
+
+		const supabase = createSupabaseBrowser();
+
+		const {
+			data: { subscription }
+		} = supabase.auth.onAuthStateChange((event, session) => {
+			console.debug('[auth] state change', { event, hasSession: !!session });
+			if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+				// Invalidate the specific auth dependency
+				invalidate('supabase:auth');
+			}
+		});
+
+		return () => {
+			subscription.unsubscribe();
+		};
 	});
 
 	// Realtime: listen for changes to tasks and treats and invalidate (client-only)
