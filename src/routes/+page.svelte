@@ -84,14 +84,14 @@
 	let listOpen = $state<boolean>(false);
 
 	// One-time acceptance notification (for creator) - reactive to data changes
-	let acceptedNotices = $derived((data as any).acceptedTreatsToNotify ?? []);
+	let acceptedNotices = $state<Array<any>>([...((data as any).acceptedTreatsToNotify ?? [])]);
 	async function acknowledgeAccepted(id: number) {
 		await fetch(`/api/treats/${id}`, {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ acknowledgeAccepted: true })
 		});
-		await invalidateAll();
+		acceptedNotices = acceptedNotices.filter((t) => t.id !== id);
 	}
 
 	let loginOpen = $state(false);
@@ -463,7 +463,17 @@
 			{#if (data.pendingTreats ?? []).length > 0}
 				{#each data.pendingTreats ?? [] as tr}
 					<Floating classes="z-50">
-						<AcceptTreat onAccept={(id) => (acceptingTreatId = id)} {tr} {acceptingTreatId} />
+						<AcceptTreat
+							onAccept={(id) => (acceptingTreatId = id)}
+							{tr}
+							{acceptingTreatId}
+							onUpdate={(updated) => {
+								// Remove or update from pending list in data; keeping it simple by removing
+								(data as any).pendingTreats = (data.pendingTreats ?? []).filter(
+									(t) => t.id !== (updated as any).id
+								);
+							}}
+						/>
 					</Floating>
 				{/each}
 			{/if}

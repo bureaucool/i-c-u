@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
 	import type { Treat } from '$lib/types';
 	import { bounceOut, elasticOut, expoOut, sineInOut } from 'svelte/easing';
 	import Button from './button.svelte';
@@ -8,8 +7,14 @@
 	let {
 		tr,
 		acceptingTreatId,
-		onAccept
-	}: { tr: Treat; acceptingTreatId: number | null; onAccept: (id: number) => void } = $props();
+		onAccept,
+		onUpdate
+	}: {
+		tr: Treat;
+		acceptingTreatId: number | null;
+		onAccept: (id: number) => void;
+		onUpdate: (updated: Treat | { id: number; dismissed: true }) => void;
+	} = $props();
 
 	let acceptMinutes = $state<number | null>(null);
 	let acceptFeedback = $state('');
@@ -52,11 +57,11 @@
 						})
 					});
 					if (res.ok) {
+						const updated = await res.json().catch(() => null);
+						if (updated) onUpdate(updated);
 						acceptingTreatId = null;
 						acceptMinutes = null;
 						acceptFeedback = '';
-
-						invalidateAll();
 					}
 				}}
 			>
@@ -93,13 +98,12 @@
 					big={false}
 					grey
 					onclick={async () => {
-						await fetch(`/api/treats/${tr.id}`, {
+						const res = await fetch(`/api/treats/${tr.id}`, {
 							method: 'PATCH',
 							headers: { 'Content-Type': 'application/json' },
 							body: JSON.stringify({ accepted: false, declined: true })
 						});
-
-						invalidateAll();
+						if (res.ok) onUpdate({ id: tr.id, dismissed: true } as any);
 					}}>Dismiss</Button
 				>
 			</div>
