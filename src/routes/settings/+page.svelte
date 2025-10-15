@@ -56,26 +56,10 @@
 	});
 </script>
 
-<div class="pointer-events-none fixed inset-x-0 bottom-3 z-40 md:top-3">
-	<div class="mx-auto flex max-w-xl justify-end px-7">
-		<a href="/" aria-label="Settings" class="pointer-events-auto p-3"
-			><div class="h-3 w-3 rounded-full bg-black/30 md:hover:bg-black"></div></a
-		>
-	</div>
-</div>
-
 <div
-	class="pointer-events-none fixed inset-x-0 top-3 z-40 mx-auto flex max-w-lg flex-row justify-between"
+	class="pointer-events-none fixed inset-x-0 top-3 z-40 mx-auto flex max-w-lg flex-row justify-end"
 >
 	<a class="pointer-events-auto p-3" href="/">Back</a>
-	<button
-		class="pointer-events-auto p-3"
-		onclick={async () => {
-			await fetch('/api/auth', { method: 'DELETE' });
-			await invalidateAll();
-			await goto('/');
-		}}>Logout</button
-	>
 </div>
 
 <div class="flex flex-col gap-y-10">
@@ -243,7 +227,7 @@
 	</section>
 
 	<section>
-		<h3 class="text-neutral-500">User Availability (minutes/week)</h3>
+		<h3 class="text-neutral-500">Working hours (minutes/week)</h3>
 		<form
 			class="flex flex-row items-center justify-between"
 			onsubmit={async (e) => {
@@ -358,6 +342,18 @@
 			</form>
 		</section>
 	{/if}
+
+	<section class="flex flex-row justify-end">
+		<Button
+			big={false}
+			grey
+			onclick={async () => {
+				await fetch('/api/auth', { method: 'DELETE' });
+				await invalidateAll();
+				await goto('/');
+			}}>Logout</Button
+		>
+	</section>
 </div>
 
 {#if fullScreenNotification}
@@ -367,7 +363,9 @@
 			fullScreenNotification = null;
 		}}
 	>
-		<div class="flex flex-col items-center justify-center rounded-lg bg-white p-4 text-2xl">
+		<div
+			class="mx-5 flex flex-col items-center justify-center rounded-full bg-white p-4 text-2xl shadow-2xl"
+		>
 			<span class="w-full text-center text-3xl"
 				>{fullScreenNotification.type === 'note' ? '☝️' : ''}</span
 			>

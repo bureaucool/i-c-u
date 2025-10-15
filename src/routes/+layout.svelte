@@ -132,7 +132,7 @@
 
 {#if data.user}
 	<div class="pointer-events-none fixed inset-x-3 top-3 z-30 flex justify-center">
-		<Logo title={currentGroupTitle} />
+		<a class="pointer-events-auto" href="/"><Logo title={currentGroupTitle} /></a>
 	</div>
 {/if}
 {#key page.url.pathname}
