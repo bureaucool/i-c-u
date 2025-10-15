@@ -463,7 +463,7 @@
 	class="pointer-events-none fixed inset-x-0 top-3 z-40 mx-auto flex max-w-lg flex-row justify-between"
 >
 	{#if data.user}
-		<a class="pointer-events-auto p-3" href="/">Insights</a>
+		<a class="pointer-events-auto p-3" href="/insights">Insights</a>
 		<a href="/settings" aria-label="Settings" class="pointer-events-auto p-3">Settings</a>
 	{/if}
 </div>
